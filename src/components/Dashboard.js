@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Button,
+  // Button,
   Container,
   Typography,
   Box,
@@ -26,11 +26,11 @@ import {
   TrendingDown as TrendingDownIcon
 } from '@mui/icons-material';
 import authService from '../services/authService';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
   const user = authService.getCurrentUser();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [orderStats, setOrderStats] = useState([]);
   const [dashboardData, setDashboardData] = useState({
     totalProfit: 0,
@@ -102,10 +102,10 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
-  const handleLogout = () => {
-    authService.logout();
-    navigate('/login');
-  };
+  // const handleLogout = () => {
+  //   authService.logout();
+  //   navigate('/login');
+  // };
 
   const handleSort = (property) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -132,13 +132,13 @@ const Dashboard = () => {
         <Typography variant="h4">
           Welcome, {user?.fullName || user?.userName}!
         </Typography>
-        <Button
+        {/* <Button
           variant="contained"
           color="error"
           onClick={handleLogout}
         >
           Logout
-        </Button>
+        </Button> */}
       </Box>
 
       {/* Stats Cards */}

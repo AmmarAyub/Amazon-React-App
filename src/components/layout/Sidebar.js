@@ -1,77 +1,126 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { 
+  Drawer, 
+  List, 
+  ListItem, 
+  ListItemIcon, 
+  ListItemText,
+  Divider,
+  Toolbar,
+  Box,
+  Avatar,
+  Typography
+} from '@mui/material';
+import { 
+  Dashboard as DashboardIcon,
+  Inventory as ProductsIcon,
+  People as UsersIcon,
+  // Settings as SettingsIcon
+} from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 
-const Sidebar = () => {
+const drawerWidth = 240;
+
+const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
   const { currentUser } = useAuth();
   const location = useLocation();
 
-  // Check if current path matches the link
-  const isActive = (path) => {
-    return location.pathname === path;
-  };
+  const menuItems = [
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
+    { text: 'Products', icon: <ProductsIcon />, path: '/products'  },
+    { text: 'Orders', icon: <ProductsIcon />, path: '/orders'  },
+    { text: 'Users', icon: <UsersIcon />, path: '/users' },
+    // { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
+  ];
+
+  const drawer = (
+    <div>
+      <Toolbar />
+      <Divider />
+      <List>
+        {menuItems.map((item) => (
+          <ListItem 
+            button 
+            key={item.text}
+            component={Link}
+            to={item.path}
+            selected={location.pathname === item.path}
+            sx={{
+              '&.Mui-selected': {
+                backgroundColor: (theme) => theme.palette.action.selected,
+              },
+              '&.Mui-selected:hover': {
+                backgroundColor: (theme) => theme.palette.action.selected,
+              },
+            }}
+          >
+            <ListItemIcon sx={{ color: 'inherit' }}>
+              {item.icon}
+            </ListItemIcon>
+            <ListItemText primary={item.text} />
+          </ListItem>
+        ))}
+      </List>
+      <Divider />
+      <Box sx={{ p: 2, position: 'absolute', bottom: 0, width: '100%' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Avatar 
+            sx={{ 
+              width: 40, 
+              height: 40, 
+              mr: 2,
+              bgcolor: 'primary.main'
+            }}
+          >
+            {currentUser?.email?.charAt(0).toUpperCase()}
+          </Avatar>
+          <Box>
+            <Typography variant="subtitle2">
+              {currentUser?.email}
+            </Typography>
+            <Typography variant="caption" color="textSecondary">
+              Admin
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+    </div>
+  );
 
   return (
-    <aside className="sidebar">
-      <div className="sidebar-header">
-        <h3>AmazonAPI</h3>
-      </div>
-      <nav className="sidebar-nav">
-        <ul>
-          <li className={isActive('/dashboard') ? 'active' : ''}>
-            <Link to="/dashboard">
-              <i className="icon-dashboard"></i>
-              <span>Dashboard</span>
-            </Link>
-          </li>
-          
-          {currentUser && (
-            <>
-              <li className={isActive('/products') ? 'active' : ''}>
-                <Link to="/products">
-                  <i className="icon-products"></i>
-                  <span>Products</span>
-                </Link>
-              </li>
-              <li className={isActive('/orders') ? 'active' : ''}>
-                <Link to="/orders">
-                  <i className="icon-orders"></i>
-                  <span>Orders</span>
-                </Link>
-              </li>
-              <li className={isActive('/profile') ? 'active' : ''}>
-                <Link to="/profile">
-                  <i className="icon-profile"></i>
-                  <span>Profile</span>
-                </Link>
-              </li>
-            </>
-          )}
-          
-          {currentUser?.isAdmin && (
-            <li className={isActive('/admin') ? 'active' : ''}>
-              <Link to="/admin">
-                <i className="icon-admin"></i>
-                <span>Admin Panel</span>
-              </Link>
-            </li>
-          )}
-        </ul>
-      </nav>
-      <div className="sidebar-footer">
-        {currentUser && (
-          <div className="user-info">
-            <div className="user-avatar">
-              {currentUser.email.charAt(0).toUpperCase()}
-            </div>
-            <div className="user-details">
-              <span className="user-name">{currentUser.email}</span>
-              <span className="user-role">{currentUser.isAdmin ? 'Admin' : 'User'}</span>
-            </div>
-          </div>
-        )}
-      </div>
-    </aside>
+    <Box
+      component="nav"
+      sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+    >
+      {/* Mobile drawer */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{
+          keepMounted: true, // Better open performance on mobile.
+        }}
+        sx={{
+          display: { xs: 'block', sm: 'none' },
+          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+        }}
+      >
+        {drawer}
+      </Drawer>
+      
+      {/* Desktop drawer */}
+      <Drawer
+        variant="permanent"
+        sx={{
+          display: { xs: 'none', sm: 'block' },
+          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+        }}
+        open
+      >
+        {drawer}
+      </Drawer>
+    </Box>
   );
 };
 

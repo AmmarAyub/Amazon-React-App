@@ -1,27 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box,
-  Typography,
-  Paper,
+  Container,
   Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  CircularProgress,
+  Spinner,
   Alert,
   Button,
-  Avatar,
-  TablePagination
-} from '@mui/material';
+  Pagination,
+  Card,
+  Badge,
+  Row,
+  Col,
+  Form
+} from 'react-bootstrap';
 import {
-  Person as PersonIcon,
-  Email as EmailIcon,
-  Business as CompanyIcon,
-  CheckCircle as ActiveIcon,
-  Cancel as InactiveIcon
-} from '@mui/icons-material';
+  PersonFill,
+  EnvelopeFill,
+  Building,
+  CheckCircleFill,
+  XCircleFill,
+  // PencilSquare,
+  // Trash
+} from 'react-bootstrap-icons';
 import { useAuth } from '../contexts/AuthContext';
 
 const UserList = () => {
@@ -29,8 +28,8 @@ const UserList = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -57,141 +56,184 @@ const UserList = () => {
     fetchUsers();
   }, [currentUser?.token]);
 
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = users.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(users.length / itemsPerPage);
 
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const handleItemsPerPageChange = (e) => {
+    setItemsPerPage(Number(e.target.value));
+    setCurrentPage(1);
   };
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
-      </Box>
+      <Container className="d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
+        <Spinner animation="border" variant="primary" />
+      </Container>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error" sx={{ mb: 3 }}>
+      <Container className="py-3">
+        <Alert variant="danger" className="mb-3">
           {error}
         </Alert>
         <Button 
-          variant="contained" 
+          variant="primary" 
           onClick={() => window.location.reload()}
         >
           Retry
         </Button>
-      </Box>
+      </Container>
     );
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        User Management
-      </Typography>
-      
-      <Paper elevation={3} sx={{ p: 2, mb: 3 }}>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                {/* <TableCell>User</TableCell> */}
-                
-                <TableCell>Full Name</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Company</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {users.length > 0 ? (
-                users
-                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                  .map((user) => (
-                    <TableRow key={user?.UserId || Math.random()}>
-                          <TableCell>
-                        <Box display="flex" alignItems="center">
-                          <PersonIcon color="action" sx={{ mr: 1 }} />
+    <Container fluid className="py-4">
+      <Card className="shadow-sm">
+        <Card.Body>
+          <h4 className="mb-4">User Management</h4>
+          
+          <div className="table-responsive">
+            <Table striped bordered hover>
+              <thead>
+                <tr>
+                  <th>Full Name</th>
+                  <th>Email</th>
+                  <th>Company</th>
+                  <th>Status</th>
+                  {/* <th>Actions</th> */}
+                </tr>
+              </thead>
+              <tbody>
+                {currentItems.length > 0 ? (
+                  currentItems.map((user) => (
+                    <tr key={user?.UserId || Math.random()}>
+                      <td>
+                        <div className="d-flex align-items-center">
+                          <PersonFill className="text-primary me-2" />
                           {user?.fullName || 'N/A'}
-                        </Box>
-                      </TableCell>
-                      {/* <TableCell>
-                        <Box display="flex" alignItems="center">
-                          <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
-                            {user?.userName?.charAt(0)?.toUpperCase() || 'U'}
-                          </Avatar>
-                          {user?.userName || 'N/A'}
-                        </Box>
-                      </TableCell> */}
-                      <TableCell>
-                        <Box display="flex" alignItems="center">
-                          <EmailIcon color="action" sx={{ mr: 1 }} />
+                        </div>
+                      </td>
+                      <td>
+                        <div className="d-flex align-items-center">
+                          <EnvelopeFill className="text-primary me-2" />
                           {user?.email || 'N/A'}
-                        </Box>
-                      </TableCell>
-                    
-                      <TableCell>
-                        <Box display="flex" alignItems="center">
-                          <CompanyIcon color="action" sx={{ mr: 1 }} />
+                        </div>
+                      </td>
+                      <td>
+                        <div className="d-flex align-items-center">
+                          <Building className="text-primary me-2" />
                           {user?.companyName || 'N/A'}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Box display="flex" alignItems="center">
-                          {user?.userStatus === 'Active' ? (
-                            <>
-                              <ActiveIcon color="success" sx={{ mr: 1 }} />
-                              Active
-                            </>
-                          ) : (
-                            <>
-                              <InactiveIcon color="error" sx={{ mr: 1 }} />
-                              Inactive
-                            </>
-                          )}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="outlined" size="small" sx={{ mr: 1 }}>
+                        </div>
+                      </td>
+                      <td>
+                        {user?.userStatus === 'Active' ? (
+                          <Badge bg="success" className="d-flex align-items-center">
+                            <CheckCircleFill className="me-1" />
+                            Active
+                          </Badge>
+                        ) : (
+                          <Badge bg="danger" className="d-flex align-items-center">
+                            <XCircleFill className="me-1" />
+                            Inactive
+                          </Badge>
+                        )}
+                      </td>
+                      {/* <td>
+                        <Button variant="outline-primary" size="sm" className="me-2">
+                          <PencilSquare className="me-1" />
                           Edit
                         </Button>
-                        <Button variant="outlined" color="error" size="small">
+                        <Button variant="outline-danger" size="sm">
+                          <Trash className="me-1" />
                           Delete
                         </Button>
-                      </TableCell>
-                    </TableRow>
+                      </td> */}
+                    </tr>
                   ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    No users found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        
-        {users.length > 0 && (
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25]}
-            component="div"
-            count={users.length}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-          />
-        )}
-      </Paper>
-    </Box>
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="text-center py-4">
+                      No users found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </Table>
+          </div>
+
+          {users.length > 0 && (
+            <Row className="align-items-center mt-3">
+              <Col md={6}>
+                <div className="d-flex align-items-center">
+                  <span className="me-2">Show</span>
+                  <Form.Select
+                    value={itemsPerPage}
+                    onChange={handleItemsPerPageChange}
+                    style={{ width: '80px' }}
+                    size="sm"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                  </Form.Select>
+                  <span className="ms-2">entries</span>
+                </div>
+              </Col>
+              <Col md={6}>
+                <div className="d-flex justify-content-end">
+                  <Pagination>
+                    <Pagination.First 
+                      onClick={() => paginate(1)} 
+                      disabled={currentPage === 1} 
+                    />
+                    <Pagination.Prev 
+                      onClick={() => paginate(currentPage - 1)} 
+                      disabled={currentPage === 1} 
+                    />
+                    
+                    {Array.from({ length: totalPages }, (_, i) => {
+                      if (
+                        i === 0 || 
+                        i === totalPages - 1 || 
+                        (i >= currentPage - 2 && i <= currentPage + 2)
+                      ) {
+                        return (
+                          <Pagination.Item
+                            key={i + 1}
+                            active={i + 1 === currentPage}
+                            onClick={() => paginate(i + 1)}
+                          >
+                            {i + 1}
+                          </Pagination.Item>
+                        );
+                      } else if (i === 1 || i === totalPages - 2) {
+                        return <Pagination.Ellipsis key={i + 1} />;
+                      }
+                      return null;
+                    })}
+                    
+                    <Pagination.Next 
+                      onClick={() => paginate(currentPage + 1)} 
+                      disabled={currentPage === totalPages} 
+                    />
+                    <Pagination.Last 
+                      onClick={() => paginate(totalPages)} 
+                      disabled={currentPage === totalPages} 
+                    />
+                  </Pagination>
+                </div>
+              </Col>
+            </Row>
+          )}
+        </Card.Body>
+      </Card>
+    </Container>
   );
 };
 

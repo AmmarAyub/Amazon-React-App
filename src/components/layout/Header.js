@@ -1,134 +1,135 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { 
-  AppBar, 
-  Toolbar, 
-  Typography, 
-  Button, 
-  Box, 
-  Avatar,
-  IconButton,
-  Menu,
-  MenuItem
-} from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-// import authService from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import React from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import authService from "../../services/authService";
+import { Avatar} from '@mui/material';
+import { Navbar, Container, Nav, Dropdown } from "react-bootstrap";
+import { PersonCircle, BoxArrowRight } from "react-bootstrap-icons";
 
 const Header = ({ handleDrawerToggle }) => {
+  const user = authService.getCurrentUser();
   const { currentUser, logout } = useAuth();
-  const [anchorEl, setAnchorEl] = React.useState(null);
-const navigate = useNavigate();
+  const [showDropdown, setShowDropdown] = React.useState(false);
+  const navigate = useNavigate();
 
-  const handleMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
+  const handleLogout = (e) => {
+    e.preventDefault();
+    logout();
+    navigate("/login");
   };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleLogout = () => {
-    debugger;
-      logout();
-      navigate('/login');
-    };
 
   return (
-    <AppBar 
-      position="fixed" 
-      sx={{ 
-        zIndex: (theme) => theme.zIndex.drawer + 1,
-        backgroundColor: 'background.paper',
-        color: 'text.primary',
-        boxShadow: 'none',
-        borderBottom: (theme) => `1px solid ${theme.palette.divider}`
-      }}
+    <Navbar
+      bg="light"
+      variant="light"
+      fixed="top"
+      expand="sm"
+      className="border-bottom py-2"
     >
-      <Toolbar>
-        <IconButton
-          color="inherit"
-          aria-label="open drawer"
-          edge="start"
+      <Container fluid className="px-3">
+        {/* Mobile menu button */}
+        <button
           onClick={handleDrawerToggle}
-          sx={{ mr: 2, display: { sm: 'none' } }}
+          className="d-sm-none btn btn-link text-decoration-none p-0 me-3"
+          style={{ width: "24px", height: "24px" }}
         >
-          <MenuIcon />
-        </IconButton>
-        
-        <Typography 
-          variant="h6" 
-          component={Link} 
-          to="/" 
-          sx={{ 
-            flexGrow: 1,
-            textDecoration: 'none',
-            color: 'inherit',
-            fontWeight: 'bold'
-          }}
+          <span className="navbar-toggler-icon"></span>
+        </button>
+
+        {/* Brand logo */}
+        <Navbar.Brand
+          as={Link}
+          to="/dashboard"
+          className="fw-bold fs-4 me-auto"
+          style={{ color: "#326ea2" }}
         >
-          AmazonAPI Dashboard
-        </Typography>
-        
+          AMAZON
+        </Navbar.Brand>
+
+        {/* User controls */}
         {currentUser ? (
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Button 
-              onClick={handleMenuOpen}
-              sx={{ display: 'flex', alignItems: 'center' }}
+          <Nav className="align-items-center">
+            <Dropdown
+              show={showDropdown}
+              onToggle={(isOpen) => setShowDropdown(isOpen)}
+              align="end"
             >
-              <Avatar 
-                sx={{ 
-                  width: 32, 
-                  height: 32, 
-                  mr: 1,
-                  bgcolor: 'primary.main'
-                }}
+              <Dropdown.Toggle
+                variant="link"
+                className="d-flex align-items-center text-decoration-none p-0"
               >
-                {currentUser.email.charAt(0).toUpperCase()}
-              </Avatar>
-              <Typography variant="body1" sx={{ display: { xs: 'none', sm: 'block' } }}>
-                {currentUser.email}
-              </Typography>
-            </Button>
-            
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={handleMenuClose}
-            >
-              <MenuItem onClick={logout}>Logout</MenuItem>
-            </Menu>
-          </Box>
+                <div className="d-flex align-items-center">
+                  <PersonCircle
+                    className="fs-4 me-2"
+                    style={{ color: "#326ea2" }}
+                  />
+                  <span className="d-none d-md-inline me-2 fw-medium">
+                    {currentUser.email.split("@")[0]}
+                  </span>
+                  <div
+                    className="bg-primary rounded-circle d-flex align-items-center justify-content-center"
+                    style={{ width: "36px", height: "36px" }}
+                  >
+                    <span className="text-white fw-medium">
+                      {currentUser.email.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+              </Dropdown.Toggle>
+
+              <Dropdown.Menu className="mt-2 border-0 shadow-sm">
+                <Dropdown.ItemText className="small text-muted px-3 py-2">
+                  Signed in as {currentUser.email}
+                </Dropdown.ItemText>
+                <Dropdown.Divider className="my-1" />
+                <Dropdown.Item
+                  onClick={handleLogout}
+                  className="d-flex align-items-center px-3 py-2"
+                >
+                  <BoxArrowRight className="me-2" />
+                  Sign out
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+          </Nav>
         ) : (
-          <Box>
-            <Button 
-              component={Link} 
-              to="/login" 
-              color="inherit"
-              sx={{ mr: 1 }}
+          <Nav className="align-items-center gap-3">
+             <Avatar 
+                        sx={{ 
+                          width: 40, 
+                          height: 40, 
+                          mr: 0,
+                          bgcolor: 'primary.main',
+                          color: 'white'
+                        }}
+                      >
+                        {currentUser?.email?.charAt(0).toUpperCase()}
+                      </Avatar>
+            <Link
+              to="/user"
+              className="text-decoration-none fw-medium"
+              style={{ color: "#326ea2" }}
             >
-              Login
-            </Button>
-            <Button 
-              component={Link} 
-              to="/register" 
-              variant="contained"
-              color="primary"
+              {user?.fullName || user?.userName}
+            </Link>
+
+            <button
+              onClick={handleLogout}
+              className="btn btn-link text-decoration-none p-0"
+              style={{
+                color: "#6c757d",
+                transition: "color 0.2s ease",
+              }}
+              onMouseEnter={(e) => (e.target.style.color = "#dc3545")}
+              onMouseLeave={(e) => (e.target.style.color = "#6c757d")}
             >
-              Register
-            </Button>
-              <Button
-                      variant="contained"
-                      color="error"
-                      onClick={handleLogout}
-                    >
-                      Logout
-                    </Button>
-          </Box>
+              <BoxArrowRight className="me-1" />
+              <span>Sign Out</span>
+            </button>
+          </Nav>
         )}
-      </Toolbar>
-    </AppBar>
+      </Container>
+    </Navbar>
   );
 };
 

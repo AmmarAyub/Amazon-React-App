@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Container,
   Row,
@@ -15,6 +15,9 @@ import {
   Tooltip,
   OverlayTrigger,
   Badge,
+  Form,
+  Pagination,
+  InputGroup,
 } from "react-bootstrap";
 import {
   CurrencyDollar,
@@ -25,6 +28,7 @@ import {
   BoxArrowInRight,
   GraphUp,
   GraphDown,
+  Search,
 } from "react-bootstrap-icons";
 import authService from "../services/authService";
 import { format, parseISO } from "date-fns";
@@ -50,6 +54,11 @@ const Dashboard = () => {
   const [orderBy, setOrderBy] = useState("OrderCounts");
   const [order, setOrder] = useState("desc");
 
+  // Order Statistics Table Pagination & Filter
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [statusFilter, setStatusFilter] = useState("");
+
   // Amazon Orders Tab States
   const [tabValue, setTabValue] = useState("dashboard");
   const [selectedPeriod, setSelectedPeriod] = useState("current");
@@ -64,6 +73,13 @@ const Dashboard = () => {
   });
   const [amazonOrdersLoading, setAmazonOrdersLoading] = useState(true);
   const [amazonOrdersError, setAmazonOrdersError] = useState(null);
+
+  // Amazon Orders Table States
+  const [amazonCurrentPage, setAmazonCurrentPage] = useState(1);
+  const [amazonItemsPerPage] = useState(10);
+  const [amazonSearchTerm, setAmazonSearchTerm] = useState("");
+  const [amazonSortField, setAmazonSortField] = useState("");
+  const [amazonSortOrder, setAmazonSortOrder] = useState("asc");
 
   // Format currency
   const formatCurrency = (value) => {
@@ -213,56 +229,210 @@ const Dashboard = () => {
     const isAsc = orderBy === property && order === "asc";
     setOrder(isAsc ? "desc" : "asc");
     setOrderBy(property);
+    setCurrentPage(1); // Reset to first page when sorting
   };
 
-  const sortedStats = [...orderStats].sort((a, b) => {
-    if (orderBy === "OrderTotal") {
-      const aValue = parseFloat(a[orderBy].replace(/[^0-9.-]+/g, "")) || 0;
-      const bValue = parseFloat(b[orderBy].replace(/[^0-9.-]+/g, "")) || 0;
-      return order === "asc" ? aValue - bValue : bValue - aValue;
+  // Filter and sort order stats
+  const filteredOrderStats = useMemo(() => {
+    return [...orderStats]
+      .filter(
+        (stat) =>
+          statusFilter === "" ||
+          stat.orderStatus.toLowerCase().includes(statusFilter.toLowerCase())
+      )
+      .sort((a, b) => {
+        if (orderBy === "OrderTotal") {
+          const aValue = parseFloat(a[orderBy]?.replace(/[^0-9.-]+/g, "") || 0);
+          const bValue = parseFloat(b[orderBy]?.replace(/[^0-9.-]+/g, "") || 0);
+          return order === "asc" ? aValue - bValue : bValue - aValue;
+        }
+
+        return order === "asc"
+          ? a[orderBy] > b[orderBy]
+            ? 1
+            : -1
+          : a[orderBy] < b[orderBy]
+          ? 1
+          : -1;
+      });
+  }, [orderStats, statusFilter, orderBy, order]);
+
+  // Pagination for order stats
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredOrderStats.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
+  const totalPages = Math.ceil(filteredOrderStats.length / itemsPerPage);
+
+  // Filter and sort Amazon orders
+  const filteredAmazonOrders = useMemo(() => {
+    let filtered = [...amazonOrders];
+
+    // Apply search filter
+    if (amazonSearchTerm) {
+      filtered = filtered.filter((item) =>
+        Object.values(item).some(
+          (value) =>
+            value &&
+            value
+              .toString()
+              .toLowerCase()
+              .includes(amazonSearchTerm.toLowerCase())
+        )
+      );
     }
 
-    return order === "asc"
-      ? a[orderBy] > b[orderBy]
-        ? 1
-        : -1
-      : a[orderBy] < b[orderBy]
-      ? 1
-      : -1;
-  });
+    // Apply sorting
+    if (amazonSortField) {
+      filtered.sort((a, b) => {
+        let aValue = a[amazonSortField];
+        let bValue = b[amazonSortField];
+
+        // Handle numeric values
+        if (
+          [
+            "quantity",
+            "sellingPrice",
+            "sellingTotal",
+            "itemTaxAmount",
+            "purchaseTotal",
+            "estimatedProfit",
+          ].includes(amazonSortField)
+        ) {
+          aValue = aValue || 0;
+          bValue = bValue || 0;
+        }
+
+        // Handle string values
+        if (typeof aValue === "string") {
+          aValue = aValue.toLowerCase();
+          bValue = bValue.toLowerCase();
+        }
+
+        if (aValue < bValue) return amazonSortOrder === "asc" ? -1 : 1;
+        if (aValue > bValue) return amazonSortOrder === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return filtered;
+  }, [amazonOrders, amazonSearchTerm, amazonSortField, amazonSortOrder]);
+
+  // Pagination for Amazon orders
+  const amazonIndexOfLastItem = amazonCurrentPage * amazonItemsPerPage;
+  const amazonIndexOfFirstItem = amazonIndexOfLastItem - amazonItemsPerPage;
+  const amazonCurrentItems = filteredAmazonOrders.slice(
+    amazonIndexOfFirstItem,
+    amazonIndexOfLastItem
+  );
+  const amazonTotalPages = Math.ceil(
+    filteredAmazonOrders.length / amazonItemsPerPage
+  );
+
+  // Handle Amazon sort
+  const handleAmazonSort = (field) => {
+    if (amazonSortField === field) {
+      setAmazonSortOrder(amazonSortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setAmazonSortField(field);
+      setAmazonSortOrder("asc");
+    }
+    setAmazonCurrentPage(1); // Reset to first page when sorting
+  };
+
+  // Handle Amazon search change
+  const handleAmazonSearchChange = (value) => {
+    setAmazonSearchTerm(value);
+    setAmazonCurrentPage(1); // Reset to first page when searching
+  };
+
+  // Custom pagination component
+  const renderPagination = (
+    currentPage,
+    totalPages,
+    setPage,
+    totalItems,
+    itemsPerPage
+  ) => {
+    if (totalPages <= 1) return null;
+
+    let items = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let number = startPage; number <= endPage; number++) {
+      items.push(
+        <Pagination.Item
+          key={number}
+          active={number === currentPage}
+          onClick={() => setPage(number)}
+        >
+          {number}
+        </Pagination.Item>
+      );
+    }
+
+    return (
+      <div className="d-flex justify-content-between align-items-center mt-3">
+        <div>
+          Showing {currentPage === 1 ? 1 : (currentPage - 1) * itemsPerPage + 1}{" "}
+          to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}{" "}
+          entries
+        </div>
+        <Pagination size="sm">
+          <Pagination.Prev
+            disabled={currentPage === 1}
+            onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+          />
+          {items}
+          <Pagination.Next
+            disabled={currentPage === totalPages}
+            onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+          />
+        </Pagination>
+      </div>
+    );
+  };
+
+  // Render sort indicator
+  const renderSortIndicator = (field) => {
+    if (amazonSortField !== field) return null;
+    return amazonSortOrder === "asc" ? "↑" : "↓";
+  };
 
   return (
     <Container fluid>
       <Tabs activeKey={tabValue} onSelect={handleTabChange} className="mb-4">
         {/* Dashboard Overview Tab */}
         <Tab eventKey="dashboard" title="Dashboard Overview">
-          <Row className="g-4 mb-4">
+          <Row className="g-4 mb-4 align-items-stretch">
             {/* Net Profit Card */}
             <Col md={3}>
-              <Card className="h-100 shadow-sm">
-                <Card.Body>
+              <Card className="h-100 shadow-sm border-0 bg-success text-white">
+                <Card.Body className="d-flex flex-column justify-content-center">
                   <div className="d-flex justify-content-between align-items-center mb-3">
-                    <div className="bg-success bg-opacity-10 p-2 rounded">
-                      <CurrencyDollar size={24} className="text-success" />
+                    <div className="bg-white bg-opacity-25 p-2 rounded">
+                      <CurrencyDollar size={24} />
                     </div>
-                    <small className="text-muted">Net Profit</small>
+                    <small>Net Profit</small>
                   </div>
                   <h3 className="mb-3">
                     {formatCurrency(dashboardData.netProfit)}
                   </h3>
                   <div className="d-flex align-items-center">
                     {dashboardData.profitChange > 0 ? (
-                      <GraphUp size={20} className="text-success me-2" />
+                      <GraphUp size={20} className="me-2" />
                     ) : (
-                      <GraphDown size={20} className="text-danger me-2" />
+                      <GraphDown size={20} className="me-2" />
                     )}
-                    <small
-                      className={
-                        dashboardData.profitChange > 0
-                          ? "text-success"
-                          : "text-danger"
-                      }
-                    >
+                    <small>
                       {dashboardData.profitChange}% from last month
                     </small>
                   </div>
@@ -272,28 +442,22 @@ const Dashboard = () => {
 
             {/* Total Orders Card */}
             <Col md={3}>
-              <Card className="h-100 shadow-sm">
-                <Card.Body>
+              <Card className="h-100 shadow-sm border-0 bg-primary text-white">
+                <Card.Body className="d-flex flex-column justify-content-center">
                   <div className="d-flex justify-content-between align-items-center mb-3">
-                    <div className="bg-info bg-opacity-10 p-2 rounded">
-                      <Cart size={24} className="text-info" />
+                    <div className="bg-white bg-opacity-25 p-2 rounded">
+                      <Cart size={24} />
                     </div>
-                    <small className="text-muted">Total Orders</small>
+                    <small>Total Orders</small>
                   </div>
                   <h3 className="mb-3">{dashboardData.totalOrders}</h3>
                   <div className="d-flex align-items-center">
                     {dashboardData.orderChange > 0 ? (
-                      <GraphUp size={20} className="text-success me-2" />
+                      <GraphUp size={20} className="me-2" />
                     ) : (
-                      <GraphDown size={20} className="text-danger me-2" />
+                      <GraphDown size={20} className="me-2" />
                     )}
-                    <small
-                      className={
-                        dashboardData.orderChange > 0
-                          ? "text-success"
-                          : "text-danger"
-                      }
-                    >
+                    <small>
                       {dashboardData.orderChange}% from last month
                     </small>
                   </div>
@@ -303,9 +467,9 @@ const Dashboard = () => {
 
             {/* Order Status Card */}
             <Col md={3}>
-              <Card className="h-100 shadow-sm">
-                <Card.Body>
-                  <small className="text-muted">Order Status</small>
+              <Card className="h-100 shadow-sm border-0 bg-info text-white">
+                <Card.Body className="d-flex flex-column justify-content-center">
+                  <small>Order Status</small>
                   <div className="mt-3">
                     <div className="d-flex justify-content-between mb-1">
                       <small>
@@ -328,7 +492,7 @@ const Dashboard = () => {
                             100
                           : 0
                       }
-                      variant="success"
+                      variant="light"
                       className="mb-3"
                       style={{ height: "8px" }}
                     />
@@ -353,7 +517,7 @@ const Dashboard = () => {
                             100
                           : 0
                       }
-                      variant="warning"
+                      variant="light"
                       style={{ height: "8px" }}
                     />
                   </div>
@@ -363,27 +527,24 @@ const Dashboard = () => {
 
             {/* Account Information Card */}
             <Col md={3}>
-              <Card className="h-100 shadow-sm">
-                <Card.Body>
-                  <small className="text-muted">Account Information</small>
+              <Card className="h-100 shadow-sm border-0 bg-dark text-white">
+                <Card.Body className="d-flex flex-column justify-content-center">
+                  <small>Account Information</small>
                   <div className="mt-3">
                     <div className="d-flex align-items-center mb-2">
-                      <Person size={16} className="text-primary me-2" />
+                      <Person size={16} className="me-2" />
                       <small>{user?.fullName || user?.userName || "N/A"}</small>
                     </div>
                     <div className="d-flex align-items-center mb-2">
-                      <Envelope size={16} className="text-primary me-2" />
+                      <Envelope size={16} className="me-2" />
                       <small>{user?.email || "N/A"}</small>
                     </div>
                     <div className="d-flex align-items-center mb-2">
-                      <ShieldShaded size={16} className="text-primary me-2" />
+                      <ShieldShaded size={16} className="me-2" />
                       <small>{user?.isAdmin ? "Admin" : "Standard"}</small>
                     </div>
                     <div className="d-flex align-items-center">
-                      <BoxArrowInRight
-                        size={16}
-                        className="text-primary me-2"
-                      />
+                      <BoxArrowInRight size={16} className="me-2" />
                       <small>{user?.lastLogin || "N/A"}</small>
                     </div>
                   </div>
@@ -392,10 +553,31 @@ const Dashboard = () => {
             </Col>
           </Row>
 
-          {/* Order Statistics Table */}
+          {/* Order Statistics Table with Filters and Pagination */}
           <Card className="shadow-sm mb-4">
             <Card.Body>
-              <h5 className="mb-4">Order Status Statistics</h5>
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <h5 className="mb-0">Order Status Statistics</h5>
+                <Form.Group
+                  controlId="statusFilter"
+                  className="mb-0"
+                  style={{ width: "300px" }}
+                >
+                  <div className="d-flex align-items-center">
+                    <Search className="me-2" />
+                    <Form.Control
+                      type="text"
+                      placeholder="Filter by status..."
+                      value={statusFilter}
+                      onChange={(e) => {
+                        setStatusFilter(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                    />
+                  </div>
+                </Form.Group>
+              </div>
+
               {loading ? (
                 <div className="text-center py-4">
                   <Spinner animation="border" variant="primary" />
@@ -403,59 +585,71 @@ const Dashboard = () => {
               ) : error ? (
                 <Alert variant="danger">{error}</Alert>
               ) : (
-                <div className="table-responsive">
-                  <Table striped bordered hover>
-                    <thead>
-                      <tr>
-                        <th onClick={() => handleSort("OrderStatus")}>
-                          <div className="d-flex align-items-center cursor-pointer">
-                            Order Status
-                            {orderBy === "OrderStatus" && (
-                              <span className="ms-1">
-                                {order === "asc" ? "↑" : "↓"}
-                              </span>
-                            )}
-                          </div>
-                        </th>
-                        <th
-                          className="text-end"
-                          onClick={() => handleSort("OrderCounts")}
-                        >
-                          <div className="d-flex align-items-center justify-content-end cursor-pointer">
-                            Order Count
-                            {orderBy === "OrderCounts" && (
-                              <span className="ms-1">
-                                {order === "asc" ? "↑" : "↓"}
-                              </span>
-                            )}
-                          </div>
-                        </th>
-                        <th
-                          className="text-end"
-                          onClick={() => handleSort("OrderTotal")}
-                        >
-                          <div className="d-flex align-items-center justify-content-end cursor-pointer">
-                            Total Value
-                            {orderBy === "OrderTotal" && (
-                              <span className="ms-1">
-                                {order === "asc" ? "↑" : "↓"}
-                              </span>
-                            )}
-                          </div>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sortedStats.map((stat, index) => (
-                        <tr key={index}>
-                          <td>{stat.orderStatus}</td>
-                          <td className="text-end">{stat.orderCounts}</td>
-                          <td className="text-end">{stat.orderTotal}</td>
+                <>
+                  <div className="table-responsive">
+                    <Table striped bordered hover>
+                      <thead>
+                        <tr>
+                          <th
+                            onClick={() => handleSort("OrderStatus")}
+                            className="cursor-pointer"
+                          >
+                            <div className="d-flex align-items-center">
+                              Order Status
+                              {orderBy === "OrderStatus" && (
+                                <span className="ms-1">
+                                  {order === "asc" ? "↑" : "↓"}
+                                </span>
+                              )}
+                            </div>
+                          </th>
+                          <th
+                            className="text-end cursor-pointer"
+                            onClick={() => handleSort("OrderCounts")}
+                          >
+                            <div className="d-flex align-items-center justify-content-end">
+                              Order Count
+                              {orderBy === "OrderCounts" && (
+                                <span className="ms-1">
+                                  {order === "asc" ? "↑" : "↓"}
+                                </span>
+                              )}
+                            </div>
+                          </th>
+                          <th
+                            className="text-end cursor-pointer"
+                            onClick={() => handleSort("OrderTotal")}
+                          >
+                            <div className="d-flex align-items-center justify-content-end">
+                              Total Value
+                              {orderBy === "OrderTotal" && (
+                                <span className="ms-1">
+                                  {order === "asc" ? "↑" : "↓"}
+                                </span>
+                              )}
+                            </div>
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </Table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {currentItems.map((stat, index) => (
+                          <tr key={index}>
+                            <td>{stat.orderStatus}</td>
+                            <td className="text-end">{stat.orderCounts}</td>
+                            <td className="text-end">{stat.orderTotal}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  </div>
+                  {renderPagination(
+                    currentPage,
+                    totalPages,
+                    setCurrentPage,
+                    filteredOrderStats.length,
+                    itemsPerPage
+                  )}
+                </>
               )}
             </Card.Body>
           </Card>
@@ -466,10 +660,10 @@ const Dashboard = () => {
           <Card className="shadow-sm">
             <Card.Header className="bg-dark text-white">
               <div className="d-flex justify-content-between align-items-center">
-                <h2 className="mb-0">
+                <h4 className="mb-0">
                   <FaTruck className="me-2" />
                   AMAZON SHIPPED ORDERS DASHBOARD
-                </h2>
+                </h4>
                 <ButtonGroup>
                   <Button
                     variant={
@@ -521,97 +715,248 @@ const Dashboard = () => {
                   {/* Metrics Cards Row */}
                   <Row className="mb-4 g-3">
                     <Col md={2} sm={6}>
-                      <Card bg="primary" text="white">
-                        <Card.Body>
-                          <h6 className="card-title">
+                      <Card className="h-100 text-center d-flex flex-column justify-content-center">
+                        <Card.Body className="py-3">
+                          <h4 className="mb-0" style={{ fontSize: "1.4rem" }}>
+                            <strong>
+                              {amazonMetrics.OrderCount.toLocaleString("en-US")}
+                            </strong>
+                          </h4>
+                          <h6
+                            className="card-title mb-2"
+                            style={{ fontSize: "0.8rem" }}
+                          >
                             {getAmazonPeriodTitle()}
                           </h6>
-                          <h3>
-                            {amazonMetrics.OrderCount.toLocaleString("en-US")}
-                          </h3>
                         </Card.Body>
                       </Card>
                     </Col>
 
                     <Col md={2} sm={6}>
                       <Card
-                        bg={
-                          amazonMetrics.TotalProfit >= 0 ? "success" : "danger"
-                        }
-                        text="white"
+                        className={`h-100 text-center d-flex flex-column justify-content-center ${
+                          amazonMetrics.TotalProfit >= 0
+                            ? "bg-success text-white"
+                            : "bg-danger text-white"
+                        }`}
                       >
-                        <Card.Body>
-                          <h6 className="card-title">Total Profit</h6>
-                          <h3>{formatCurrency(amazonMetrics.TotalProfit)}</h3>
+                        <Card.Body className="py-3">
+                          <h4 className="mb-0" style={{ fontSize: "1.4rem" }}>
+                            <strong>
+                              {" "}
+                              {formatCurrency(amazonMetrics.TotalProfit)}
+                            </strong>
+                          </h4>
+                          <h6
+                            className="card-title mb-2"
+                            style={{ fontSize: "0.8rem" }}
+                          >
+                            {amazonMetrics.TotalProfit > 0
+                              ? "Total Profit"
+                              : "Total Loss"}
+                          </h6>
                         </Card.Body>
                       </Card>
                     </Col>
 
                     <Col md={2} sm={6}>
-                      <Card bg="info" text="white">
-                        <Card.Body>
-                          <h6 className="card-title">Total Sales</h6>
-                          <h3>{formatCurrency(amazonMetrics.TotalSales)}</h3>
+                      <Card className="h-100 text-center d-flex flex-column justify-content-center bg-info text-white">
+                        <Card.Body className="py-3">
+                          <h4 className="mb-0" style={{ fontSize: "1.4rem" }}>
+                            <strong>
+                              {" "}
+                              {formatCurrency(amazonMetrics.TotalSales)}
+                            </strong>
+                          </h4>
+                          <h6
+                            className="card-title mb-2"
+                            style={{ fontSize: "0.8rem" }}
+                          >
+                            Total Sales
+                          </h6>
                         </Card.Body>
                       </Card>
                     </Col>
 
                     <Col md={2} sm={6}>
-                      <Card bg="warning" text="dark">
-                        <Card.Body>
-                          <h6 className="card-title">Total Purchases</h6>
-                          <h3>
-                            {formatCurrency(amazonMetrics.TotalPurchases)}
-                          </h3>
+                      <Card className="h-100 text-center d-flex flex-column justify-content-center bg-warning text-dark">
+                        <Card.Body className="py-3">
+                          <h4 className="mb-0" style={{ fontSize: "1.4rem" }}>
+                            <strong>
+                              {" "}
+                              {formatCurrency(amazonMetrics.TotalPurchases)}
+                            </strong>
+                          </h4>
+                          <h6
+                            className="card-title mb-2"
+                            style={{ fontSize: "0.8rem" }}
+                          >
+                            Total Purchases
+                          </h6>
                         </Card.Body>
                       </Card>
                     </Col>
 
                     <Col md={2} sm={6}>
-                      <Card bg="secondary" text="white">
-                        <Card.Body>
-                          <h6 className="card-title">Marketplace Fees</h6>
-                          <h3>
-                            {formatCurrency(amazonMetrics.TotalMarketplaceFee)}
-                          </h3>
+                      <Card className="h-100 text-center d-flex flex-column justify-content-center bg-secondary text-white">
+                        <Card.Body className="py-3">
+                          <h4 className="mb-0" style={{ fontSize: "1.4rem" }}>
+                            <strong>
+                              {" "}
+                              {formatCurrency(amazonMetrics.TotalMarketplaceFee)}
+                            </strong>
+                          </h4>
+                          <h6
+                            className="card-title mb-2"
+                            style={{ fontSize: "0.8rem" }}
+                          >
+                            Marketplace Fees
+                          </h6>
                         </Card.Body>
                       </Card>
                     </Col>
 
                     <Col md={2} sm={6}>
-                      <Card bg="dark" text="white">
-                        <Card.Body>
-                          <h6 className="card-title">Total Freight</h6>
-                          <h3>{formatCurrency(amazonMetrics.TotalFreight)}</h3>
+                      <Card className="h-100 text-center d-flex flex-column justify-content-center bg-dark text-white">
+                        <Card.Body className="py-3">
+                          <h4 className="mb-0" style={{ fontSize: "1.4rem" }}>
+                            <strong>
+                              {" "}
+                              {formatCurrency(amazonMetrics.TotalFreight)}
+                            </strong>
+                          </h4>
+                          <h6
+                            className="card-title mb-2"
+                            style={{ fontSize: "0.8rem" }}
+                          >
+                            Total Freight
+                          </h6>
                         </Card.Body>
                       </Card>
                     </Col>
                   </Row>
-                  {/* Orders Table */}
+
+                  {/* Amazon Orders Table with Search and Pagination */}
+                  <div className="mb-3">
+                    <Row>
+                      <Col md={9}></Col>
+                      <Col md={3}>
+                        <InputGroup>
+                          <InputGroup.Text>
+                            <Search />
+                          </InputGroup.Text>
+                          <Form.Control
+                            placeholder="Search by order ID, SKU, title, status, etc."
+                            value={amazonSearchTerm}
+                            onChange={(e) =>
+                              handleAmazonSearchChange(e.target.value)
+                            }
+                          />
+                        </InputGroup>
+                      </Col>
+                    </Row>
+                  </div>
+
                   <div className="table-responsive">
                     <Table striped bordered hover>
                       <thead className="table-dark">
                         <tr>
-                          <th>Order ID</th>
-                          <th>Purchase Date</th>
-                          <th>Latest Ship Date</th>
-                          <th>SKU</th>
-                          <th>Title</th>
-                          <th className="text-end">Qty</th>
-                          <th className="text-end">Price</th>
-                          <th className="text-end">Total</th>
-                          <th className="text-end">Tax</th>
-                          <th className="text-end">Cost</th>
-                          <th className="text-end">Profit</th>
-                          <th>Status</th>
-                          <th>Tracking</th>
-                          <th>Vendor</th>
-                          <th>Ship Method</th>
+                          <th
+                            onClick={() => handleAmazonSort("orderId")}
+                            className="cursor-pointer"
+                          >
+                            Order ID {renderSortIndicator("orderId")}
+                          </th>
+                          <th
+                            onClick={() => handleAmazonSort("purchaseDate")}
+                            className="cursor-pointer"
+                          >
+                            Purchase Date {renderSortIndicator("purchaseDate")}
+                          </th>
+                          <th
+                            onClick={() => handleAmazonSort("latestShipDate")}
+                            className="cursor-pointer"
+                          >
+                            Latest ShipDate{" "}
+                            {renderSortIndicator("latestShipDate")}
+                          </th>
+                          <th
+                            onClick={() => handleAmazonSort("sku")}
+                            className="cursor-pointer"
+                          >
+                            SKU {renderSortIndicator("sku")}
+                          </th>
+                          <th
+                            onClick={() => handleAmazonSort("title")}
+                            className="cursor-pointer"
+                          >
+                            Title {renderSortIndicator("title")}
+                          </th>
+                          <th
+                            className="text-end cursor-pointer"
+                            onClick={() => handleAmazonSort("quantity")}
+                          >
+                            Qty {renderSortIndicator("quantity")}
+                          </th>
+                          <th
+                            className="text-end cursor-pointer"
+                            onClick={() => handleAmazonSort("sellingPrice")}
+                          >
+                            Price {renderSortIndicator("sellingPrice")}
+                          </th>
+                          <th
+                            className="text-end cursor-pointer"
+                            onClick={() => handleAmazonSort("sellingTotal")}
+                          >
+                            Total {renderSortIndicator("sellingTotal")}
+                          </th>
+                          <th
+                            className="text-end cursor-pointer"
+                            onClick={() => handleAmazonSort("itemTaxAmount")}
+                          >
+                            Tax {renderSortIndicator("itemTaxAmount")}
+                          </th>
+                          <th
+                            className="text-end cursor-pointer"
+                            onClick={() => handleAmazonSort("purchaseTotal")}
+                          >
+                            Cost {renderSortIndicator("purchaseTotal")}
+                          </th>
+                          <th
+                            className="text-end cursor-pointer"
+                            onClick={() => handleAmazonSort("estimatedProfit")}
+                          >
+                            Profit {renderSortIndicator("estimatedProfit")}
+                          </th>
+                          <th
+                            onClick={() => handleAmazonSort("sellingStatus")}
+                            className="cursor-pointer"
+                          >
+                            Status {renderSortIndicator("sellingStatus")}
+                          </th>
+                          <th
+                            onClick={() => handleAmazonSort("trackingId")}
+                            className="cursor-pointer"
+                          >
+                            Tracking {renderSortIndicator("trackingId")}
+                          </th>
+                          <th
+                            onClick={() => handleAmazonSort("vendorName")}
+                            className="cursor-pointer"
+                          >
+                            Vendor {renderSortIndicator("vendorName")}
+                          </th>
+                          <th
+                            onClick={() => handleAmazonSort("shipMethod")}
+                            className="cursor-pointer"
+                          >
+                            Ship Method {renderSortIndicator("shipMethod")}
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
-                        {amazonOrders.length > 0 ? (
-                          amazonOrders.map((item, index) => (
+                        {amazonCurrentItems.length > 0 ? (
+                          amazonCurrentItems.map((item, index) => (
                             <tr key={index}>
                               <td>{item.orderId}</td>
                               <td>{formatDate(item.purchaseDate)}</td>
@@ -677,13 +1022,22 @@ const Dashboard = () => {
                         ) : (
                           <tr>
                             <td colSpan="15" className="text-center py-4">
-                              No orders found for the selected period
+                              {amazonSearchTerm
+                                ? "No orders found matching your search"
+                                : "No orders found for the selected period"}
                             </td>
                           </tr>
                         )}
                       </tbody>
                     </Table>
                   </div>
+                  {renderPagination(
+                    amazonCurrentPage,
+                    amazonTotalPages,
+                    setAmazonCurrentPage,
+                    filteredAmazonOrders.length,
+                    amazonItemsPerPage
+                  )}
                 </>
               )}
             </Card.Body>

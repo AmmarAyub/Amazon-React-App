@@ -9,6 +9,8 @@ const drawerWidth = 240;
 
 const Layout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+// In your parent component (e.g., Layout.js)
+const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -17,8 +19,8 @@ const Layout = () => {
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
-      <Header handleDrawerToggle={handleDrawerToggle} />
-      <Sidebar mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} />
+      <Header sidebarCollapsed={sidebarCollapsed} handleDrawerToggle={handleDrawerToggle} />
+      <Sidebar collapsed={sidebarCollapsed}  onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}  mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} />
       
       <Box
         component="main"

@@ -2,11 +2,12 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import authService from "../../services/authService";
-import { Avatar} from '@mui/material';
+import { Avatar } from '@mui/material';
 import { Navbar, Container, Nav, Dropdown } from "react-bootstrap";
-import { PersonCircle, BoxArrowRight } from "react-bootstrap-icons";
+import { PersonCircle, BoxArrowRight, List } from "react-bootstrap-icons";
+// import "./Header.css";
 
-const Header = ({ handleDrawerToggle }) => {
+const Header = ({ handleDrawerToggle, sidebarCollapsed }) => {
   const user = authService.getCurrentUser();
   const { currentUser, logout } = useAuth();
   const [showDropdown, setShowDropdown] = React.useState(false);
@@ -19,101 +20,123 @@ const Header = ({ handleDrawerToggle }) => {
   };
 
   return (
-    <Navbar
-      bg="light"
-      variant="light"
-      fixed="top"
-      expand="sm"
-      className="border-bottom py-2"
-    >
-      <Container fluid className="px-3">
-        {/* Mobile menu button */}
-        <button
-          onClick={handleDrawerToggle}
-          className="d-sm-none btn btn-link text-decoration-none p-0 me-3"
-          style={{ width: "24px", height: "24px" }}
-        >
-          <span className="navbar-toggler-icon"></span>
-        </button>
+    <div className={`header-container ${sidebarCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'}`}>
+      <Navbar
+        bg="white"
+        variant="light"
+        fixed="top"
+        expand="sm"
+        className="border-bottom py-2 shadow-sm"
+      >
+        <Container fluid className="px-3">
+          {/* Sidebar toggle button */}
+          <button
+            onClick={handleDrawerToggle}
+            className="btn btn-link text-decoration-none p-0 me-3 d-flex align-items-center"
+            style={{ 
+              width: "40px", 
+              height: "40px",
+              borderRadius: "50%",
+              backgroundColor: "#f8f9fa",
+              border: "1px solid #dee2e6"
+            }}
+          >
+            <List className="fs-5" style={{ color: "#495057" }} />
+          </button>
 
-        {/* Brand logo */}
-        <Navbar.Brand
-          as={Link}
-          to="/dashboard"
-          className="fw-bold fs-4 me-auto"
-          style={{ color: "#326ea2" }}
-        >
-          AMAZON
-        </Navbar.Brand>
+          {/* Spacer to balance the layout */}
+          <div className="flex-grow-1"></div>
 
-        {/* User controls */}
-        {currentUser ? (
-          <Nav className="align-items-center">
-            <Dropdown
-              show={showDropdown}
-              onToggle={(isOpen) => setShowDropdown(isOpen)}
-              align="end"
-            >
-              <Dropdown.Toggle
-                variant="link"
-                className="d-flex align-items-center text-decoration-none p-0"
+          {/* User controls */}
+          {currentUser ? (
+            <Nav className="align-items-center">
+              <Dropdown
+                show={showDropdown}
+                onToggle={(isOpen) => setShowDropdown(isOpen)}
+                align="end"
               >
-                <div className="d-flex align-items-center">
-                  <PersonCircle
-                    className="fs-4 me-2"
-                    style={{ color: "#326ea2" }}
-                  />
-                  <span className="d-none d-md-inline me-2 fw-medium">
-                    {currentUser.email.split("@")[0]}
-                  </span>
-                  <div
-                    className="bg-primary rounded-circle d-flex align-items-center justify-content-center"
-                    style={{ width: "36px", height: "36px" }}
-                  >
-                    <span className="text-white fw-medium">
-                      {currentUser.email.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-              </Dropdown.Toggle>
-
-              <Dropdown.Menu className="mt-2 border-0 shadow-sm">
-                <Dropdown.ItemText className="small text-muted px-3 py-2">
-                  Signed in as {currentUser.email}
-                </Dropdown.ItemText>
-                <Dropdown.Divider className="my-1" />
-                <Dropdown.Item
-                  onClick={handleLogout}
-                  className="d-flex align-items-center px-3 py-2"
+                <Dropdown.Toggle
+                  variant="link"
+                  className="d-flex align-items-center text-decoration-none p-0 user-dropdown-toggle"
+                  style={{ backgroundColor: 'transparent', border: 'none' }}
                 >
-                  <BoxArrowRight className="me-2" />
-                  Sign out
-                </Dropdown.Item>
-              </Dropdown.Menu>
-            </Dropdown>
-          </Nav>
-        ) : (
-          <Nav className="align-items-center gap-3">
-             <Avatar 
-                        sx={{ 
-                          width: 40, 
-                          height: 40, 
-                          mr: 0,
-                          bgcolor: 'primary.main',
-                          color: 'white'
-                        }}
-                      >
-                        {currentUser?.email?.charAt(0).toUpperCase()}
-                      </Avatar>
-            <Link
-              to="/user"
-              className="text-decoration-none fw-medium"
-              style={{ color: "#326ea2" }}
-            >
-              {user?.fullName || user?.userName}
-            </Link>
+                  <div className="d-flex align-items-center">
+                    <div className="d-none d-md-flex flex-column align-items-end me-3">
+                      <span className="fw-medium text-dark small">
+                        {currentUser.email.split("@")[0]}
+                      </span>
+                      <span className="text-muted small" style={{ fontSize: '0.75rem' }}>
+                        Administrator
+                      </span>
+                    </div>
+                    <Avatar 
+                      sx={{ 
+                        width: 40, 
+                        height: 40, 
+                        bgcolor: '#326ea2',
+                        color: 'white',
+                        fontSize: '1rem',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {currentUser.email.charAt(0).toUpperCase()}
+                    </Avatar>
+                  </div>
+                </Dropdown.Toggle>
 
-            <button
+                <Dropdown.Menu className="mt-2 border-0 shadow-lg" style={{ minWidth: '200px' }}>
+                  <Dropdown.ItemText className="small text-muted px-3 py-2 border-bottom">
+                    Signed in as<br />
+                    <strong>{currentUser.email}</strong>
+                  </Dropdown.ItemText>
+                  <Dropdown.Item 
+                    as={Link} 
+                    to="/profile" 
+                    className="px-3 py-2 d-flex align-items-center"
+                  >
+                    <PersonCircle className="me-2 text-primary" />
+                    Profile Settings
+                  </Dropdown.Item>
+                  <Dropdown.Divider className="my-1" />
+                  <Dropdown.Item
+                    onClick={handleLogout}
+                    className="px-3 py-2 d-flex align-items-center text-danger"
+                  >
+                    <BoxArrowRight className="me-2" />
+                    Sign out
+                  </Dropdown.Item>
+                </Dropdown.Menu>
+              </Dropdown>
+            </Nav>
+          ) : (
+            <Nav className="align-items-center gap-3">
+              <Avatar 
+                sx={{ 
+                  width: 40, 
+                  height: 40, 
+                  bgcolor: 'primary.main',
+                  color: 'white'
+                }}
+              >
+                {user?.email?.charAt(0).toUpperCase() || 'U'}
+              </Avatar>
+              <Link
+                to="/user"
+                className="text-decoration-none fw-medium text-dark"
+              >
+                {user?.fullName || user?.userName || 'User'}
+              </Link>
+              {/* <button
+                onClick={handleLogout}
+                className="btn btn-outline-danger btn-sm d-flex align-items-center"
+                style={{
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <BoxArrowRight className="me-1" />
+                <span>Sign Out</span>
+              </button> */}
+                 <button
               onClick={handleLogout}
               className="btn btn-link text-decoration-none p-0"
               style={{
@@ -126,10 +149,11 @@ const Header = ({ handleDrawerToggle }) => {
               <BoxArrowRight className="me-1" />
               <span>Sign Out</span>
             </button>
-          </Nav>
-        )}
-      </Container>
-    </Navbar>
+            </Nav>
+          )}
+        </Container>
+      </Navbar>
+    </div>
   );
 };
 

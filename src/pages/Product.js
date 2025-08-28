@@ -1,7 +1,17 @@
 import React, { useState, useEffect } from "react";
+import {
+  Modal,
+  Form,
+  Row,
+  Col,
+  Alert,
+  Spinner,
+  Button,
+  Container,
+} from "react-bootstrap";
 import "./Products.css";
 
-const Product = (sidebarCollapsed) => {
+const Product = ({ sidebarCollapsed }) => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -10,31 +20,60 @@ const Product = (sidebarCollapsed) => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createError, setCreateError] = useState(null);
+  const [createSuccess, setCreateSuccess] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateLoading, setUpdateLoading] = useState(false);
+  const [updateError, setUpdateError] = useState(null);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    productName: "",
+    unitPrice: "",
+    status: "1",
+    itemCode: "",
+    isTrackable: false,
+    hstryUserId: "",
+  });
+
+  // Update form state
+  const [updateFormData, setUpdateFormData] = useState({
+    productId: "",
+    productName: "",
+    unitPrice: "",
+    status: "1",
+    itemCode: "",
+    isTrackable: false,
+    hstryUserId: "",
+  });
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await fetch(
-          "https://localhost:7224/api/Products/Productslist"
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        setProducts(data);
-        setFilteredProducts(data);
-        setLoading(false);
-      } catch (err) {
-        setError(err.message);
-        setLoading(false);
-        console.error("Failed to fetch products:", err);
-      }
-    };
-
     fetchProducts();
   }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch(
+        "https://localhost:7224/api/Products/Productslist"
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setProducts(data);
+      setFilteredProducts(data);
+      setLoading(false);
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+      console.error("Failed to fetch products:", err);
+    }
+  };
 
   const fetchProductDetails = async (productId) => {
     setModalLoading(true);
@@ -59,13 +98,196 @@ const Product = (sidebarCollapsed) => {
     }
   };
 
+  const handleCreateProduct = async (e) => {
+    e.preventDefault();
+    setCreateLoading(true);
+    setCreateError(null);
+    setCreateSuccess(false);
+
+    try {
+      // Prepare the data for API
+      const productData = {
+        productName: formData.productName,
+        unitPrice: formData.unitPrice ? parseFloat(formData.unitPrice) : null,
+        status: parseInt(formData.status),
+        itemCode: formData.itemCode || null,
+        isTrackable: formData.isTrackable,
+        hstryUserId: formData.hstryUserId,
+      };
+
+      const response = await fetch(
+        "https://localhost:7224/api/Products/CreateProduct",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(productData),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || `HTTP error! status: ${response.status}`
+        );
+      }
+
+      setCreateSuccess(true);
+
+      // Reset form
+      setFormData({
+        productName: "",
+        unitPrice: "",
+        status: "1",
+        itemCode: "",
+        isTrackable: false,
+        hstryUserId: "",
+      });
+
+      // Refresh products list after a short delay
+      setTimeout(() => {
+        fetchProducts();
+        setShowCreateModal(false);
+        setCreateSuccess(false);
+      }, 2000);
+    } catch (err) {
+      setCreateError(err.message);
+      console.error("Failed to create product:", err);
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
+  const handleUpdateProduct = async (e) => {
+    debugger;
+    e.preventDefault();
+    setUpdateLoading(true);
+    setUpdateError(null);
+    setUpdateSuccess(false);
+
+    try {
+      // Prepare the data for API
+      const productData = {
+        productId: parseInt(updateFormData.productId),
+        productName: updateFormData.productName,
+        unitPrice: updateFormData.unitPrice
+          ? parseFloat(updateFormData.unitPrice)
+          : null,
+        status: parseInt(updateFormData.status),
+        itemCode: updateFormData.itemCode || null,
+        isTrackable: updateFormData.isTrackable,
+        hstryUserId: updateFormData.hstryUserId,
+      };
+      debugger;
+      const response = await fetch(
+        "https://localhost:7224/api/Products/UpdateProduct?id=" +
+          productData.productId,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(productData),
+        }
+      );
+      debugger;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || `HTTP error! status: ${response.status}`
+        );
+      }
+
+      setUpdateSuccess(true);
+
+      // Refresh products list after a short delay
+      setTimeout(() => {
+        fetchProducts();
+        setShowUpdateModal(false);
+        setUpdateSuccess(false);
+      }, 2000);
+    } catch (err) {
+      setUpdateError(err.message);
+      console.error("Failed to update product:", err);
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleUpdateInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setUpdateFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
   const handleViewDetails = (productId) => {
     fetchProductDetails(productId);
+  };
+
+  const handleEditProduct = (product, productId) => {
+    setUpdateFormData({
+      productId: product.productId,
+      productName: product.productName || "",
+      unitPrice: product.unitPrice || "",
+      status: product.status?.toString() || "1",
+      itemCode: product.itemCode || "",
+      isTrackable: product.isTrackable || false,
+      hstryUserId: product.hstryUserId || "",
+    });
+    setShowUpdateModal(true);
+    setUpdateError(null);
+    setUpdateSuccess(false);
   };
 
   const closeModal = () => {
     setSelectedProduct(null);
     setModalError(null);
+  };
+
+  const handleCreateButtonClick = () => {
+    setShowCreateModal(true);
+    setCreateError(null);
+    setCreateSuccess(false);
+  };
+
+  const closeCreateModal = () => {
+    setShowCreateModal(false);
+    setFormData({
+      productName: "",
+      unitPrice: "",
+      status: "1",
+      itemCode: "",
+      isTrackable: false,
+      hstryUserId: "",
+    });
+    setCreateError(null);
+    setCreateSuccess(false);
+  };
+
+  const closeUpdateModal = () => {
+    setShowUpdateModal(false);
+    setUpdateFormData({
+      productId: "",
+      productName: "",
+      unitPrice: "",
+      status: "1",
+      itemCode: "",
+      isTrackable: false,
+      hstryUserId: "",
+    });
+    setUpdateError(null);
+    setUpdateSuccess(false);
   };
 
   useEffect(() => {
@@ -212,30 +434,29 @@ const Product = (sidebarCollapsed) => {
     >
       <div className="products-header">
         <h2>PRODUCT CATALOG</h2>
-      </div>
-
-      <div className="search-container">
-        <div className="search-box">
-          <span className="search-icon">🔍</span>
-          <input
-            type="text"
-            placeholder="Search products by name, item code, ID, or price..."
-            value={searchTerm}
-            onChange={handleSearchChange}
-            className="search-input"
-          />
-          {searchTerm && (
-            <button onClick={clearSearch} className="clear-search">
-              ✕
-            </button>
-          )}
-        </div>
-        <div className="search-results-info">
-          <span className="results-count">{filteredProducts.length}</span> of{" "}
-          <span className="total-count">{products.length}</span> products
-          {searchTerm && (
-            <span className="search-term"> matching "{searchTerm}"</span>
-          )}
+        <div className="header-controls">
+          <button
+            className="btn-create-product"
+            onClick={handleCreateButtonClick}
+          >
+            + Create Product
+          </button>
+          <div className="search-container">
+            <div className="search-box">
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+                className="search-input"
+              />
+              {searchTerm && (
+                <button onClick={clearSearch} className="clear-search">
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -257,6 +478,12 @@ const Product = (sidebarCollapsed) => {
               <div className="no-products-icon">📦</div>
               <h3>No products available</h3>
               <p>There are currently no products in the catalog.</p>
+              <button
+                className="btn-create-product"
+                onClick={handleCreateButtonClick}
+              >
+                + Create Your First Product
+              </button>
             </>
           )}
         </div>
@@ -306,7 +533,7 @@ const Product = (sidebarCollapsed) => {
                 <h4>Key Features</h4>
                 <ul>
                   {extractFeatures(product.productName)
-                    .slice(0, 2) // Limit to maximum 2 features
+                    .slice(0, 2)
                     .map((feature, index) => (
                       <li key={index}>• {feature}</li>
                     ))}
@@ -325,6 +552,12 @@ const Product = (sidebarCollapsed) => {
                   onClick={() => handleViewDetails(product.productId)}
                 >
                   View Details
+                </button>
+                <button
+                  className="btn-update"
+                  onClick={() => handleEditProduct(product, product.productId)}
+                >
+                  Update
                 </button>
               </div>
             </div>
@@ -445,6 +678,350 @@ const Product = (sidebarCollapsed) => {
           </div>
         </div>
       )}
+
+      {/* React Bootstrap Create Product Modal */}
+      <Modal
+        show={showCreateModal}
+        onHide={closeCreateModal}
+        centered
+        size="lg"
+        backdrop="static"
+      >
+        <Modal.Header closeButton className="border-bottom-0 pb-0">
+          <Modal.Title as="h2" className="fw-bold">
+            CREATE NEW PRODUCT
+          </Modal.Title>
+        </Modal.Header>
+
+        <Form onSubmit={handleCreateProduct}>
+          <Modal.Body className="pt-0">
+            {createSuccess ? (
+              <Container className="text-center py-4">
+                <div className="text-success mb-3" style={{ fontSize: "3rem" }}>
+                  ✓
+                </div>
+                <h3 className="text-success mb-2">
+                  Product Created Successfully!
+                </h3>
+                <p className="text-muted">
+                  Your new product has been added to the catalog.
+                </p>
+              </Container>
+            ) : (
+              <>
+                {createError && (
+                  <Alert variant="danger" className="d-flex align-items-center">
+                    <span className="me-2" style={{ fontSize: "1.2rem" }}>
+                      ⚠️
+                    </span>
+                    <span>{createError}</span>
+                  </Alert>
+                )}
+
+                <Row className="g-3">
+                  <Col xs={12}>
+                    <Form.Group controlId="productName">
+                      <Form.Label>Product Name *</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="productName"
+                        value={formData.productName}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="Enter product name"
+                        disabled={createLoading}
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group controlId="unitPrice">
+                      <Form.Label>Unit Price ($)</Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="unitPrice"
+                        value={formData.unitPrice}
+                        onChange={handleInputChange}
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        disabled={createLoading}
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group controlId="status">
+                      <Form.Label>Status *</Form.Label>
+                      <Form.Select
+                        name="status"
+                        value={formData.status}
+                        onChange={handleInputChange}
+                        required
+                        disabled={createLoading}
+                      >
+                        <option value={1}>Draft</option>
+                        <option value={2}>Pending</option>
+                        <option value={3}>Approved</option>
+                        <option value={4}>Discontinued</option>
+                        <option value={5}>Available</option>
+                        <option value={6}>Out of Stock</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group controlId="itemCode">
+                      <Form.Label>Item Code</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="itemCode"
+                        value={formData.itemCode}
+                        onChange={handleInputChange}
+                        placeholder="Enter item code"
+                        disabled={createLoading}
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group controlId="hstryUserId">
+                      <Form.Label>User ID *</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="hstryUserId"
+                        value={formData.hstryUserId}
+                        onChange={handleInputChange}
+                        required
+                        placeholder="Enter your user ID"
+                        disabled={createLoading}
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col xs={12}>
+                    <Form.Check
+                      type="checkbox"
+                      id="isTrackable"
+                      name="isTrackable"
+                      label="Enable Inventory Tracking"
+                      checked={formData.isTrackable}
+                      onChange={handleInputChange}
+                      disabled={createLoading}
+                      className="mt-2"
+                    />
+                  </Col>
+                </Row>
+              </>
+            )}
+          </Modal.Body>
+
+          <Modal.Footer className="border-top-0">
+            {!createSuccess && (
+              <Button
+                variant="outline-secondary"
+                onClick={closeCreateModal}
+                disabled={createLoading}
+              >
+                Cancel
+              </Button>
+            )}
+            {createSuccess ? (
+              <Button variant="primary" onClick={closeCreateModal}>
+                Close
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={createLoading}
+                className="d-flex align-items-center gap-2"
+              >
+                {createLoading ? (
+                  <>
+                    <Spinner animation="border" size="sm" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Product"
+                )}
+              </Button>
+            )}
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      {/* React Bootstrap Update Product Modal */}
+      <Modal
+        show={showUpdateModal}
+        onHide={closeUpdateModal}
+        centered
+        size="lg"
+        backdrop="static"
+      >
+        <Modal.Header closeButton className="border-bottom-0 pb-0">
+          <Modal.Title as="h2" className="fw-bold">
+            UPDATE PRODUCT
+          </Modal.Title>
+        </Modal.Header>
+
+        <Form onSubmit={handleUpdateProduct}>
+          <Modal.Body className="pt-0">
+            {updateSuccess ? (
+              <Container className="text-center py-4">
+                <div className="text-success mb-3" style={{ fontSize: "3rem" }}>
+                  ✓
+                </div>
+                <h3 className="text-success mb-2">
+                  Product Updated Successfully!
+                </h3>
+                <p className="text-muted">
+                  The product has been updated in the catalog.
+                </p>
+              </Container>
+            ) : (
+              <>
+                {updateError && (
+                  <Alert variant="danger" className="d-flex align-items-center">
+                    <span className="me-2" style={{ fontSize: "1.2rem" }}>
+                      ⚠️
+                    </span>
+                    <span>{updateError}</span>
+                  </Alert>
+                )}
+
+                <Row className="g-3">
+                  <Col xs={12}>
+                    <Form.Group controlId="updateProductName">
+                      <Form.Label>Product Name *</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="productName"
+                        value={updateFormData.productName}
+                        onChange={handleUpdateInputChange}
+                        required
+                        placeholder="Enter product name"
+                        disabled={updateLoading}
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group controlId="updateUnitPrice">
+                      <Form.Label>Unit Price ($)</Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="unitPrice"
+                        value={updateFormData.unitPrice}
+                        onChange={handleUpdateInputChange}
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        disabled={updateLoading}
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group controlId="updateStatus">
+                      <Form.Label>Status *</Form.Label>
+                      <Form.Select
+                        name="status"
+                        value={updateFormData.status}
+                        onChange={handleUpdateInputChange}
+                        required
+                        disabled={updateLoading}
+                      >
+                        <option value={1}>Draft</option>
+                        <option value={2}>Pending</option>
+                        <option value={3}>Approved</option>
+                        <option value={4}>Discontinued</option>
+                        <option value={5}>Available</option>
+                        <option value={6}>Out of Stock</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group controlId="updateItemCode">
+                      <Form.Label>Item Code</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="itemCode"
+                        value={updateFormData.itemCode}
+                        onChange={handleUpdateInputChange}
+                        placeholder="Enter item code"
+                        disabled={updateLoading}
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group controlId="updateHstryUserId">
+                      <Form.Label>User ID *</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="hstryUserId"
+                        value={updateFormData.hstryUserId}
+                        onChange={handleUpdateInputChange}
+                        required
+                        placeholder="Enter your user ID"
+                        disabled={updateLoading}
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col xs={12}>
+                    <Form.Check
+                      type="checkbox"
+                      id="updateIsTrackable"
+                      name="isTrackable"
+                      label="Enable Inventory Tracking"
+                      checked={updateFormData.isTrackable}
+                      onChange={handleUpdateInputChange}
+                      disabled={updateLoading}
+                      className="mt-2"
+                    />
+                  </Col>
+                </Row>
+              </>
+            )}
+          </Modal.Body>
+
+          <Modal.Footer className="border-top-0">
+            {!updateSuccess && (
+              <Button
+                variant="outline-secondary"
+                onClick={closeUpdateModal}
+                disabled={updateLoading}
+              >
+                Cancel
+              </Button>
+            )}
+            {updateSuccess ? (
+              <Button variant="primary" onClick={closeUpdateModal}>
+                Close
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={updateLoading}
+                className="d-flex align-items-center gap-2"
+              >
+                {updateLoading ? (
+                  <>
+                    <Spinner animation="border" size="sm" />
+                    Updating...
+                  </>
+                ) : (
+                  "Update Product"
+                )}
+              </Button>
+            )}
+          </Modal.Footer>
+        </Form>
+      </Modal>
     </div>
   );
 };

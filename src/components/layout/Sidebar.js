@@ -46,15 +46,17 @@ const AmazonLogo = styled(Box)(({ theme, collapsed }) => ({
 
 const ToggleButton = styled(IconButton)(({ theme, collapsed }) => ({
   position: 'absolute',
-  top: '70px',
-  right: '-16px',
+  top: '68px',
+  right: '-20px',
   backgroundColor: theme.palette.background.paper,
   border: `1px solid ${theme.palette.divider}`,
   zIndex: 1200,
-  width: '32px',
-  height: '32px',
+  width: '40px',
+  height: '40px',
+  boxShadow: theme.shadows[4],
   '&:hover': {
-    backgroundColor: theme.palette.grey[100]
+    backgroundColor: theme.palette.grey[100],
+    boxShadow: theme.shadows[6],
   }
 }));
 
@@ -203,7 +205,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
           display: { xs: 'none', sm: 'flex' }
         }}
       >
-        {collapsed ? <ChevronRight fontSize="small" /> : <ChevronLeft fontSize="small" />}
+        {collapsed ? <ChevronRight fontSize="medium" /> : <ChevronLeft fontSize="medium" />}
       </ToggleButton>
     </Box>
   );
@@ -233,10 +235,12 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
           left: '10px',
           zIndex: 1300,
           backgroundColor: 'background.paper',
-          boxShadow: 1
+          boxShadow: 1,
+          width: '40px',
+          height: '40px',
         }}
       >
-        <MenuIcon />
+        <MenuIcon fontSize="medium" />
       </IconButton>
       
       {/* Mobile drawer */}

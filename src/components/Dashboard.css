@@ -1,0 +1,117 @@
+ .dashboard-header {
+          background-color: #373757;
+          color: white;
+          padding: 15px 0;
+          margin-bottom: 20px;
+          border-bottom: 3px solid #FF9900;
+          font-weight: 800;
+          letter-spacing: 0.5px;
+          text-align: center;
+        }
+
+        .card-custom {
+          border-radius: 8px;
+          border: none;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+          height: 100%;
+          overflow: hidden;
+        }
+
+        .card-custom:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header-custom {
+          background-color: #373757;
+          color: white;
+          font-weight: 600;
+          padding: 12px 15px;
+          border-bottom: 2px solid #FF9900;
+        }
+
+        .table-custom {
+          font-size: 0.7rem;
+          margin-bottom: 0;
+        }
+
+        .table-custom thead th {
+          background-color: #373757;
+          color: white;
+          font-weight: 500;
+          border-bottom: none;
+        }
+
+        .table-custom tbody tr:hover {
+          background-color: rgba(255, 153, 0, 0.05);
+        }
+
+        .section-header {
+          background-color: #373757;
+          color: white;
+          padding: 10px 15px;
+          margin-bottom: 0;
+          border-radius: 8px 8px 0 0;
+          font-weight: 600;
+        }
+
+        .section-header i {
+          margin-right: 8px;
+        }
+
+        .unshipped-header {
+          background-color: #fff3cd;
+          color: #856404;
+        }
+
+        .shipped-header {
+          background-color: #d4edda;
+          color: #155724;
+        }
+
+        .refresh-clock {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          background-color: #343957;
+          color: white;
+          padding: 10px 15px;
+          border-radius: 5px;
+          font-size: 14px;
+          z-index: 1000;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .refresh-clock i {
+          font-size: 16px;
+        }
+
+        @media (max-width: 768px) {
+          .dashboard-header {
+            font-size: 1.3rem;
+            padding: 10px 0;
+          }
+
+          .card-header-custom {
+            padding: 8px 12px;
+            font-size: 0.9rem;
+          }
+
+          .table-custom {
+            font-size: 0.8rem;
+          }
+        }
+
+        @media (max-width: 576px) {
+          .dashboard-header {
+            font-size: 1.1rem;
+          }
+
+          .table-custom td, .table-custom th {
+            padding: 0.3rem;
+          }
+        }

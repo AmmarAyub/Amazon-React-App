@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Container,
   Row,
@@ -71,7 +71,7 @@ const Dashboard = () => {
     TotalMarketplaceFee: 0,
     TotalFreight: 0,
   });
-  const [amazonOrdersLoading, setAmazonOrdersLoading] = useState(true);
+  const [amazonOrdersLoading, setAmazonOrdersLoading] = useState(false);
   const [amazonOrdersError, setAmazonOrdersError] = useState(null);
 
   // Amazon Orders Table States
@@ -80,6 +80,12 @@ const Dashboard = () => {
   const [amazonSearchTerm, setAmazonSearchTerm] = useState("");
   const [amazonSortField, setAmazonSortField] = useState("");
   const [amazonSortOrder, setAmazonSortOrder] = useState("asc");
+
+  // Track which tabs have been loaded
+  const [loadedTabs, setLoadedTabs] = useState({
+    dashboard: false,
+    analytics: false
+  });
 
   // Format currency
   const formatCurrency = (value) => {
@@ -120,109 +126,125 @@ const Dashboard = () => {
     }
   };
 
-  // Fetch Dashboard Overview data
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const statsResponse = await fetch(
-          "https://localhost:7224/api/AmazonOrders/stats"
+  // Fetch Dashboard Overview data - wrapped in useCallback
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const statsResponse = await fetch(
+        "https://localhost:7224/api/AmazonOrders/stats"
+      );
+      if (!statsResponse.ok) throw new Error("Failed to fetch stats");
+      const statsData = await statsResponse.json();
+      setOrderStats(statsData);
+
+      const totalOrders = statsData.reduce(
+        (sum, item) => sum + (item.orderCounts || 0),
+        0
+      );
+      const shippedOrders =
+        statsData.find((item) => item.orderStatus === "Shipped")
+          ?.orderCounts || 0;
+      const pendingOrders =
+        statsData.find((item) => item.orderStatus === "Pending")
+          ?.orderCounts || 0;
+
+      const totalValue = statsData.reduce((total, item) => {
+        const orderTotal = item.OrderTotal?.toString() || "0";
+        return (
+          total + (parseFloat(orderTotal.replace(/[^0-9.-]+/g, "")) || 0)
         );
-        if (!statsResponse.ok) throw new Error("Failed to fetch stats");
-        const statsData = await statsResponse.json();
-        setOrderStats(statsData);
+      }, 0);
 
-        const totalOrders = statsData.reduce(
-          (sum, item) => sum + (item.orderCounts || 0),
-          0
-        );
-        const shippedOrders =
-          statsData.find((item) => item.orderStatus === "Shipped")
-            ?.orderCounts || 0;
-        const pendingOrders =
-          statsData.find((item) => item.orderStatus === "Pending")
-            ?.orderCounts || 0;
-
-        const totalValue = statsData.reduce((total, item) => {
-          const orderTotal = item.OrderTotal?.toString() || "0";
-          return (
-            total + (parseFloat(orderTotal.replace(/[^0-9.-]+/g, "")) || 0)
-          );
-        }, 0);
-
-        setDashboardData({
-          totalProfit: totalValue * 0.3,
-          totalLoss: totalValue * 0.05,
-          netProfit: totalValue * 0.25,
-          totalOrders: totalOrders,
-          shippedOrders,
-          pendingOrders,
-          profitChange: 12,
-          orderChange: 5,
-        });
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+      setDashboardData({
+        totalProfit: totalValue * 0.3,
+        totalLoss: totalValue * 0.05,
+        netProfit: totalValue * 0.25,
+        totalOrders: totalOrders,
+        shippedOrders,
+        pendingOrders,
+        profitChange: 12,
+        orderChange: 5,
+      });
+      
+      // Mark dashboard tab as loaded
+      setLoadedTabs(prev => ({...prev, dashboard: true}));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // Fetch Amazon Orders data
-  useEffect(() => {
-    const fetchAmazonOrders = async () => {
-      try {
-        setAmazonOrdersLoading(true);
-        setAmazonOrdersError(null);
+  // Fetch Amazon Orders data - wrapped in useCallback
+  const fetchAmazonOrders = useCallback(async () => {
+    try {
+      setAmazonOrdersLoading(true);
+      setAmazonOrdersError(null);
 
-        const response = await fetch(
-          `https://localhost:7224/api/AmazonOrders/AmazonOrdersstats?period=${selectedPeriod}`
-        );
+      const response = await fetch(
+        `https://localhost:7224/api/AmazonOrders/AmazonOrdersstats?period=${selectedPeriod}`
+      );
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        // Check if response is JSON
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          const text = await response.text();
-          throw new Error(`Expected JSON but got: ${contentType} - ${text}`);
-        }
-
-        const data = await response.json();
-
-        if (!data) {
-          throw new Error("Empty response from server");
-        }
-
-        // Map the orders data
-        setAmazonOrders(data.allOrders || []);
-
-        // Map the metrics data
-        setAmazonMetrics({
-          OrderCount: data.metrics?.orderCount || 0,
-          TotalProfit: data.metrics?.totalProfit || 0,
-          TotalSales: data.metrics?.totalSales || 0,
-          TotalPurchases: data.metrics?.totalPurchases || 0,
-          TotalMarketplaceFee: data.metrics?.totalMarketplaceFee || 0,
-          TotalFreight: data.metrics?.totalFreight || 0,
-        });
-      } catch (err) {
-        setAmazonOrdersError(err.message);
-        console.error("Error fetching Amazon orders:", err);
-      } finally {
-        setAmazonOrdersLoading(false);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    };
 
-    fetchAmazonOrders();
+      // Check if response is JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text();
+        throw new Error(`Expected JSON but got: ${contentType} - ${text}`);
+      }
+
+      const data = await response.json();
+
+      if (!data) {
+        throw new Error("Empty response from server");
+      }
+
+      // Map the orders data
+      setAmazonOrders(data.allOrders || []);
+
+      // Map the metrics data
+      setAmazonMetrics({
+        OrderCount: data.metrics?.orderCount || 0,
+        TotalProfit: data.metrics?.totalProfit || 0,
+        TotalSales: data.metrics?.totalSales || 0,
+        TotalPurchases: data.metrics?.totalPurchases || 0,
+        TotalMarketplaceFee: data.metrics?.totalMarketplaceFee || 0,
+        TotalFreight: data.metrics?.totalFreight || 0,
+      });
+      
+      // Mark analytics tab as loaded
+      setLoadedTabs(prev => ({...prev, analytics: true}));
+    } catch (err) {
+      setAmazonOrdersError(err.message);
+      console.error("Error fetching Amazon orders:", err);
+    } finally {
+      setAmazonOrdersLoading(false);
+    }
   }, [selectedPeriod]);
 
+  // Load dashboard data on component mount
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  // Handle period change for Amazon orders
+  useEffect(() => {
+    if (tabValue === "analytics" && loadedTabs.analytics) {
+      fetchAmazonOrders();
+    }
+  }, [selectedPeriod, tabValue, loadedTabs.analytics, fetchAmazonOrders]);
+
+  // Handle tab change
   const handleTabChange = (key) => {
     setTabValue(key);
+    
+    // Load data for the selected tab if not already loaded
+    if (key === "analytics" && !loadedTabs.analytics) {
+      fetchAmazonOrders();
+    }
   };
 
   const handleSort = (property) => {
@@ -657,391 +679,403 @@ const Dashboard = () => {
 
         {/* Amazon Shipped Orders Tab */}
         <Tab eventKey="analytics" title="Amazon Shipped Orders">
-          <Card className="shadow-sm">
-            <Card.Header className="bg-dark text-white">
-              <div className="d-flex justify-content-between align-items-center">
-                <h4 className="mb-0">
-                  <FaTruck className="me-2" />
-                  AMAZON SHIPPED ORDERS DASHBOARD
-                </h4>
-                <ButtonGroup>
-                  <Button
-                    variant={
-                      selectedPeriod === "current"
-                        ? "primary"
-                        : "outline-primary"
-                    }
-                    size="sm"
-                    onClick={() => setSelectedPeriod("current")}
-                  >
-                    Current Month
-                  </Button>
-                  <Button
-                    variant={
-                      selectedPeriod === "previous"
-                        ? "primary"
-                        : "outline-primary"
-                    }
-                    size="sm"
-                    onClick={() => setSelectedPeriod("previous")}
-                  >
-                    Previous Month
-                  </Button>
-                  <Button
-                    variant={
-                      selectedPeriod === "yeartodate"
-                        ? "primary"
-                        : "outline-primary"
-                    }
-                    size="sm"
-                    onClick={() => setSelectedPeriod("yeartodate")}
-                  >
-                    Year to Date
-                  </Button>
-                </ButtonGroup>
-              </div>
-            </Card.Header>
-
-            <Card.Body>
-              {amazonOrdersLoading ? (
-                <div className="text-center py-4">
-                  <Spinner animation="border" variant="primary" />
-                  <p className="mt-2">Loading Amazon order data...</p>
+          {!loadedTabs.analytics && !amazonOrdersLoading ? (
+            <div className="text-center py-5">
+              <Button 
+                variant="primary" 
+                onClick={fetchAmazonOrders}
+                disabled={amazonOrdersLoading}
+              >
+                {amazonOrdersLoading ? <Spinner animation="border" size="sm" /> : "Load Amazon Orders Data"}
+              </Button>
+            </div>
+          ) : (
+            <Card className="shadow-sm">
+              <Card.Header className="bg-dark text-white">
+                <div className="d-flex justify-content-between align-items-center">
+                  <h4 className="mb-0">
+                    <FaTruck className="me-2" />
+                    AMAZON SHIPPED ORDERS DASHBOARD
+                  </h4>
+                  <ButtonGroup>
+                    <Button
+                      variant={
+                        selectedPeriod === "current"
+                          ? "primary"
+                          : "outline-primary"
+                      }
+                      size="sm"
+                      onClick={() => setSelectedPeriod("current")}
+                    >
+                      Current Month
+                    </Button>
+                    <Button
+                      variant={
+                        selectedPeriod === "previous"
+                          ? "primary"
+                          : "outline-primary"
+                      }
+                      size="sm"
+                      onClick={() => setSelectedPeriod("previous")}
+                    >
+                      Previous Month
+                    </Button>
+                    <Button
+                      variant={
+                        selectedPeriod === "yeartodate"
+                          ? "primary"
+                          : "outline-primary"
+                      }
+                      size="sm"
+                      onClick={() => setSelectedPeriod("yeartodate")}
+                    >
+                      Year to Date
+                    </Button>
+                  </ButtonGroup>
                 </div>
-              ) : amazonOrdersError ? (
-                <Alert variant="danger">{amazonOrdersError}</Alert>
-              ) : (
-                <>
-                  {/* Metrics Cards Row */}
-                  <Row className="mb-4 g-3">
-                    <Col md={2} sm={6}>
-                      <Card className="h-100 text-center d-flex flex-column justify-content-center">
-                        <Card.Body className="py-3">
-                          <h4 className="mb-0" style={{ fontSize: "1.4rem" }}>
-                            <strong>
-                              {amazonMetrics.OrderCount.toLocaleString("en-US")}
-                            </strong>
-                          </h4>
-                          <h6
-                            className="card-title mb-2"
-                            style={{ fontSize: "0.8rem" }}
-                          >
-                            {getAmazonPeriodTitle()}
-                          </h6>
-                        </Card.Body>
-                      </Card>
-                    </Col>
+              </Card.Header>
 
-                    <Col md={2} sm={6}>
-                      <Card
-                        className={`h-100 text-center d-flex flex-column justify-content-center ${
-                          amazonMetrics.TotalProfit >= 0
-                            ? "bg-success text-white"
-                            : "bg-danger text-white"
-                        }`}
-                      >
-                        <Card.Body className="py-3">
-                          <h4 className="mb-0" style={{ fontSize: "1.4rem" }}>
-                            <strong>
-                              {" "}
-                              {formatCurrency(amazonMetrics.TotalProfit)}
-                            </strong>
-                          </h4>
-                          <h6
-                            className="card-title mb-2"
-                            style={{ fontSize: "0.8rem" }}
-                          >
-                            {amazonMetrics.TotalProfit > 0
-                              ? "Total Profit"
-                              : "Total Loss"}
-                          </h6>
-                        </Card.Body>
-                      </Card>
-                    </Col>
+              <Card.Body>
+                {amazonOrdersLoading ? (
+                  <div className="text-center py-4">
+                    <Spinner animation="border" variant="primary" />
+                    <p className="mt-2">Loading Amazon order data...</p>
+                  </div>
+                ) : amazonOrdersError ? (
+                  <Alert variant="danger">{amazonOrdersError}</Alert>
+                ) : (
+                  <>
+                    {/* Metrics Cards Row */}
+                    <Row className="mb-4 g-3">
+                      <Col md={2} sm={6}>
+                        <Card className="h-100 text-center d-flex flex-column justify-content-center">
+                          <Card.Body className="py-3">
+                            <h4 className="mb-0" style={{ fontSize: "1.4rem" }}>
+                              <strong>
+                                {amazonMetrics.OrderCount.toLocaleString("en-US")}
+                              </strong>
+                            </h4>
+                            <h6
+                              className="card-title mb-2"
+                              style={{ fontSize: "0.8rem" }}
+                            >
+                              {getAmazonPeriodTitle()}
+                            </h6>
+                          </Card.Body>
+                        </Card>
+                      </Col>
 
-                    <Col md={2} sm={6}>
-                      <Card className="h-100 text-center d-flex flex-column justify-content-center bg-info text-white">
-                        <Card.Body className="py-3">
-                          <h4 className="mb-0" style={{ fontSize: "1.4rem" }}>
-                            <strong>
-                              {" "}
-                              {formatCurrency(amazonMetrics.TotalSales)}
-                            </strong>
-                          </h4>
-                          <h6
-                            className="card-title mb-2"
-                            style={{ fontSize: "0.8rem" }}
-                          >
-                            Total Sales
-                          </h6>
-                        </Card.Body>
-                      </Card>
-                    </Col>
+                      <Col md={2} sm={6}>
+                        <Card
+                          className={`h-100 text-center d-flex flex-column justify-content-center ${
+                            amazonMetrics.TotalProfit >= 0
+                              ? "bg-success text-white"
+                              : "bg-danger text-white"
+                          }`}
+                        >
+                          <Card.Body className="py-3">
+                            <h4 className="mb-0" style={{ fontSize: "1.4rem" }}>
+                              <strong>
+                                {" "}
+                                {formatCurrency(amazonMetrics.TotalProfit)}
+                              </strong>
+                            </h4>
+                            <h6
+                              className="card-title mb-2"
+                              style={{ fontSize: "0.8rem" }}
+                            >
+                              {amazonMetrics.TotalProfit > 0
+                                ? "Total Profit"
+                                : "Total Loss"}
+                            </h6>
+                          </Card.Body>
+                        </Card>
+                      </Col>
 
-                    <Col md={2} sm={6}>
-                      <Card className="h-100 text-center d-flex flex-column justify-content-center bg-warning text-dark">
-                        <Card.Body className="py-3">
-                          <h4 className="mb-0" style={{ fontSize: "1.4rem" }}>
-                            <strong>
-                              {" "}
-                              {formatCurrency(amazonMetrics.TotalPurchases)}
-                            </strong>
-                          </h4>
-                          <h6
-                            className="card-title mb-2"
-                            style={{ fontSize: "0.8rem" }}
-                          >
-                            Total Purchases
-                          </h6>
-                        </Card.Body>
-                      </Card>
-                    </Col>
+                      <Col md={2} sm={6}>
+                        <Card className="h-100 text-center d-flex flex-column justify-content-center bg-info text-white">
+                          <Card.Body className="py-3">
+                            <h4 className="mb-0" style={{ fontSize: "1.4rem" }}>
+                              <strong>
+                                {" "}
+                                {formatCurrency(amazonMetrics.TotalSales)}
+                              </strong>
+                            </h4>
+                            <h6
+                              className="card-title mb-2"
+                              style={{ fontSize: "0.8rem" }}
+                            >
+                              Total Sales
+                            </h6>
+                          </Card.Body>
+                        </Card>
+                      </Col>
 
-                    <Col md={2} sm={6}>
-                      <Card className="h-100 text-center d-flex flex-column justify-content-center bg-secondary text-white">
-                        <Card.Body className="py-3">
-                          <h4 className="mb-0" style={{ fontSize: "1.4rem" }}>
-                            <strong>
-                              {" "}
-                              {formatCurrency(amazonMetrics.TotalMarketplaceFee)}
-                            </strong>
-                          </h4>
-                          <h6
-                            className="card-title mb-2"
-                            style={{ fontSize: "0.8rem" }}
-                          >
-                            Marketplace Fees
-                          </h6>
-                        </Card.Body>
-                      </Card>
-                    </Col>
+                      <Col md={2} sm={6}>
+                        <Card className="h-100 text-center d-flex flex-column justify-content-center bg-warning text-dark">
+                          <Card.Body className="py-3">
+                            <h4 className="mb-0" style={{ fontSize: "1.4rem" }}>
+                              <strong>
+                                {" "}
+                                {formatCurrency(amazonMetrics.TotalPurchases)}
+                              </strong>
+                            </h4>
+                            <h6
+                              className="card-title mb-2"
+                              style={{ fontSize: "0.8rem" }}
+                            >
+                              Total Purchases
+                            </h6>
+                          </Card.Body>
+                        </Card>
+                      </Col>
 
-                    <Col md={2} sm={6}>
-                      <Card className="h-100 text-center d-flex flex-column justify-content-center bg-dark text-white">
-                        <Card.Body className="py-3">
-                          <h4 className="mb-0" style={{ fontSize: "1.4rem" }}>
-                            <strong>
-                              {" "}
-                              {formatCurrency(amazonMetrics.TotalFreight)}
-                            </strong>
-                          </h4>
-                          <h6
-                            className="card-title mb-2"
-                            style={{ fontSize: "0.8rem" }}
-                          >
-                            Total Freight
-                          </h6>
-                        </Card.Body>
-                      </Card>
-                    </Col>
-                  </Row>
+                      <Col md={2} sm={6}>
+                        <Card className="h-100 text-center d-flex flex-column justify-content-center bg-secondary text-white">
+                          <Card.Body className="py-3">
+                            <h4 className="mb-0" style={{ fontSize: "1.4rem" }}>
+                              <strong>
+                                {" "}
+                                {formatCurrency(amazonMetrics.TotalMarketplaceFee)}
+                              </strong>
+                            </h4>
+                            <h6
+                              className="card-title mb-2"
+                              style={{ fontSize: "0.8rem" }}
+                            >
+                              Marketplace Fees
+                            </h6>
+                          </Card.Body>
+                        </Card>
+                      </Col>
 
-                  {/* Amazon Orders Table with Search and Pagination */}
-                  <div className="mb-3">
-                    <Row>
-                      <Col md={9}></Col>
-                      <Col md={3}>
-                        <InputGroup>
-                          <InputGroup.Text>
-                            <Search />
-                          </InputGroup.Text>
-                          <Form.Control
-                            placeholder="Search by order ID, SKU, title, status, etc."
-                            value={amazonSearchTerm}
-                            onChange={(e) =>
-                              handleAmazonSearchChange(e.target.value)
-                            }
-                          />
-                        </InputGroup>
+                      <Col md={2} sm={6}>
+                        <Card className="h-100 text-center d-flex flex-column justify-content-center bg-dark text-white">
+                          <Card.Body className="py-3">
+                            <h4 className="mb-0" style={{ fontSize: "1.4rem" }}>
+                              <strong>
+                                {" "}
+                                {formatCurrency(amazonMetrics.TotalFreight)}
+                              </strong>
+                            </h4>
+                            <h6
+                              className="card-title mb-2"
+                              style={{ fontSize: "0.8rem" }}
+                            >
+                              Total Freight
+                            </h6>
+                          </Card.Body>
+                        </Card>
                       </Col>
                     </Row>
-                  </div>
 
-                  <div className="table-responsive">
-                    <Table striped bordered hover>
-                      <thead className="table-dark">
-                        <tr>
-                          <th
-                            onClick={() => handleAmazonSort("orderId")}
-                            className="cursor-pointer"
-                          >
-                            Order ID {renderSortIndicator("orderId")}
-                          </th>
-                          <th
-                            onClick={() => handleAmazonSort("purchaseDate")}
-                            className="cursor-pointer"
-                          >
-                            Purchase Date {renderSortIndicator("purchaseDate")}
-                          </th>
-                          <th
-                            onClick={() => handleAmazonSort("latestShipDate")}
-                            className="cursor-pointer"
-                          >
-                            Latest ShipDate{" "}
-                            {renderSortIndicator("latestShipDate")}
-                          </th>
-                          <th
-                            onClick={() => handleAmazonSort("sku")}
-                            className="cursor-pointer"
-                          >
-                            SKU {renderSortIndicator("sku")}
-                          </th>
-                          <th
-                            onClick={() => handleAmazonSort("title")}
-                            className="cursor-pointer"
-                          >
-                            Title {renderSortIndicator("title")}
-                          </th>
-                          <th
-                            className="text-end cursor-pointer"
-                            onClick={() => handleAmazonSort("quantity")}
-                          >
-                            Qty {renderSortIndicator("quantity")}
-                          </th>
-                          <th
-                            className="text-end cursor-pointer"
-                            onClick={() => handleAmazonSort("sellingPrice")}
-                          >
-                            Price {renderSortIndicator("sellingPrice")}
-                          </th>
-                          <th
-                            className="text-end cursor-pointer"
-                            onClick={() => handleAmazonSort("sellingTotal")}
-                          >
-                            Total {renderSortIndicator("sellingTotal")}
-                          </th>
-                          <th
-                            className="text-end cursor-pointer"
-                            onClick={() => handleAmazonSort("itemTaxAmount")}
-                          >
-                            Tax {renderSortIndicator("itemTaxAmount")}
-                          </th>
-                          <th
-                            className="text-end cursor-pointer"
-                            onClick={() => handleAmazonSort("purchaseTotal")}
-                          >
-                            Cost {renderSortIndicator("purchaseTotal")}
-                          </th>
-                          <th
-                            className="text-end cursor-pointer"
-                            onClick={() => handleAmazonSort("estimatedProfit")}
-                          >
-                            Profit {renderSortIndicator("estimatedProfit")}
-                          </th>
-                          <th
-                            onClick={() => handleAmazonSort("sellingStatus")}
-                            className="cursor-pointer"
-                          >
-                            Status {renderSortIndicator("sellingStatus")}
-                          </th>
-                          <th
-                            onClick={() => handleAmazonSort("trackingId")}
-                            className="cursor-pointer"
-                          >
-                            Tracking {renderSortIndicator("trackingId")}
-                          </th>
-                          <th
-                            onClick={() => handleAmazonSort("vendorName")}
-                            className="cursor-pointer"
-                          >
-                            Vendor {renderSortIndicator("vendorName")}
-                          </th>
-                          <th
-                            onClick={() => handleAmazonSort("shipMethod")}
-                            className="cursor-pointer"
-                          >
-                            Ship Method {renderSortIndicator("shipMethod")}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {amazonCurrentItems.length > 0 ? (
-                          amazonCurrentItems.map((item, index) => (
-                            <tr key={index}>
-                              <td>{item.orderId}</td>
-                              <td>{formatDate(item.purchaseDate)}</td>
-                              <td>{formatDate(item.latestShipDate)}</td>
-                              <td>{item.sku}</td>
-                              <td>
-                                <OverlayTrigger
-                                  placement="top"
-                                  overlay={
-                                    <Tooltip id={`tooltip-${item.orderId}`}>
-                                      {item.title || "N/A"}
-                                    </Tooltip>
-                                  }
-                                >
-                                  <span>{shortenTitle(item.title)}</span>
-                                </OverlayTrigger>
-                              </td>
-                              <td className="text-end">
-                                {item.quantity?.toLocaleString("en-US") ||
-                                  "N/A"}
-                              </td>
-                              <td className="text-end">
-                                {formatCurrency(item.sellingPrice)}
-                              </td>
-                              <td className="text-end">
-                                {formatCurrency(item.sellingTotal)}
-                              </td>
-                              <td className="text-end">
-                                {formatCurrency(item.itemTaxAmount)}
-                              </td>
-                              <td className="text-end">
-                                {formatCurrency(item.purchaseTotal)}
-                              </td>
-                              <td
-                                className={`text-end ${
-                                  (item.estimatedProfit ?? 0) >= 0
-                                    ? "text-success fw-bold"
-                                    : "text-danger fw-bold"
-                                }`}
-                              >
-                                {formatCurrency(item.estimatedProfit)}
-                              </td>
-                              <td>
-                                <Badge
-                                  bg={
-                                    !item.sellingStatus
-                                      ? "secondary"
-                                      : item.sellingStatus === "Shipped"
-                                      ? "success"
-                                      : item.sellingStatus === "Pending"
-                                      ? "warning"
-                                      : "secondary"
-                                  }
-                                >
-                                  {item.sellingStatus || "Unknown"}
-                                </Badge>
-                              </td>
-                              <td>{item.trackingId || "N/A"}</td>
-                              <td>{item.vendorName || "N/A"}</td>
-                              <td>{item.shipMethod || "N/A"}</td>
-                            </tr>
-                          ))
-                        ) : (
+                    {/* Amazon Orders Table with Search and Pagination */}
+                    <div className="mb-3">
+                      <Row>
+                        <Col md={9}></Col>
+                        <Col md={3}>
+                          <InputGroup>
+                            <InputGroup.Text>
+                              <Search />
+                            </InputGroup.Text>
+                            <Form.Control
+                              placeholder="Search by order ID, SKU, title, status, etc."
+                              value={amazonSearchTerm}
+                              onChange={(e) =>
+                                handleAmazonSearchChange(e.target.value)
+                              }
+                            />
+                          </InputGroup>
+                        </Col>
+                      </Row>
+                    </div>
+
+                    <div className="table-responsive">
+                      <Table striped bordered hover>
+                        <thead className="table-dark">
                           <tr>
-                            <td colSpan="15" className="text-center py-4">
-                              {amazonSearchTerm
-                                ? "No orders found matching your search"
-                                : "No orders found for the selected period"}
-                            </td>
+                            <th
+                              onClick={() => handleAmazonSort("orderId")}
+                              className="cursor-pointer"
+                            >
+                              Order ID {renderSortIndicator("orderId")}
+                            </th>
+                            <th
+                              onClick={() => handleAmazonSort("purchaseDate")}
+                              className="cursor-pointer"
+                            >
+                              Purchase Date {renderSortIndicator("purchaseDate")}
+                            </th>
+                            <th
+                              onClick={() => handleAmazonSort("latestShipDate")}
+                              className="cursor-pointer"
+                            >
+                              Latest ShipDate{" "}
+                              {renderSortIndicator("latestShipDate")}
+                            </th>
+                            <th
+                              onClick={() => handleAmazonSort("sku")}
+                              className="cursor-pointer"
+                            >
+                              SKU {renderSortIndicator("sku")}
+                            </th>
+                            <th
+                              onClick={() => handleAmazonSort("title")}
+                              className="cursor-pointer"
+                            >
+                              Title {renderSortIndicator("title")}
+                            </th>
+                            <th
+                              className="text-end cursor-pointer"
+                              onClick={() => handleAmazonSort("quantity")}
+                            >
+                              Qty {renderSortIndicator("quantity")}
+                            </th>
+                            <th
+                              className="text-end cursor-pointer"
+                              onClick={() => handleAmazonSort("sellingPrice")}
+                            >
+                              Price {renderSortIndicator("sellingPrice")}
+                            </th>
+                            <th
+                              className="text-end cursor-pointer"
+                              onClick={() => handleAmazonSort("sellingTotal")}
+                            >
+                              Total {renderSortIndicator("sellingTotal")}
+                            </th>
+                            <th
+                              className="text-end cursor-pointer"
+                              onClick={() => handleAmazonSort("itemTaxAmount")}
+                            >
+                              Tax {renderSortIndicator("itemTaxAmount")}
+                            </th>
+                            <th
+                              className="text-end cursor-pointer"
+                              onClick={() => handleAmazonSort("purchaseTotal")}
+                            >
+                              Cost {renderSortIndicator("purchaseTotal")}
+                            </th>
+                            <th
+                              className="text-end cursor-pointer"
+                              onClick={() => handleAmazonSort("estimatedProfit")}
+                            >
+                              Profit {renderSortIndicator("estimatedProfit")}
+                            </th>
+                            <th
+                              onClick={() => handleAmazonSort("sellingStatus")}
+                              className="cursor-pointer"
+                            >
+                              Status {renderSortIndicator("sellingStatus")}
+                            </th>
+                            <th
+                              onClick={() => handleAmazonSort("trackingId")}
+                              className="cursor-pointer"
+                            >
+                              Tracking {renderSortIndicator("trackingId")}
+                            </th>
+                            <th
+                              onClick={() => handleAmazonSort("vendorName")}
+                              className="cursor-pointer"
+                            >
+                              Vendor {renderSortIndicator("vendorName")}
+                            </th>
+                            <th
+                              onClick={() => handleAmazonSort("shipMethod")}
+                              className="cursor-pointer"
+                            >
+                              Ship Method {renderSortIndicator("shipMethod")}
+                            </th>
                           </tr>
-                        )}
-                      </tbody>
-                    </Table>
-                  </div>
-                  {renderPagination(
-                    amazonCurrentPage,
-                    amazonTotalPages,
-                    setAmazonCurrentPage,
-                    filteredAmazonOrders.length,
-                    amazonItemsPerPage
-                  )}
-                </>
-              )}
-            </Card.Body>
-          </Card>
+                        </thead>
+                        <tbody>
+                          {amazonCurrentItems.length > 0 ? (
+                            amazonCurrentItems.map((item, index) => (
+                              <tr key={index}>
+                                <td>{item.orderId}</td>
+                                <td>{formatDate(item.purchaseDate)}</td>
+                                <td>{formatDate(item.latestShipDate)}</td>
+                                <td>{item.sku}</td>
+                                <td>
+                                  <OverlayTrigger
+                                    placement="top"
+                                    overlay={
+                                      <Tooltip id={`tooltip-${item.orderId}`}>
+                                        {item.title || "N/A"}
+                                      </Tooltip>
+                                    }
+                                  >
+                                    <span>{shortenTitle(item.title)}</span>
+                                  </OverlayTrigger>
+                                </td>
+                                <td className="text-end">
+                                  {item.quantity?.toLocaleString("en-US") ||
+                                    "N/A"}
+                                </td>
+                                <td className="text-end">
+                                  {formatCurrency(item.sellingPrice)}
+                                </td>
+                                <td className="text-end">
+                                  {formatCurrency(item.sellingTotal)}
+                                </td>
+                                <td className="text-end">
+                                  {formatCurrency(item.itemTaxAmount)}
+                                </td>
+                                <td className="text-end">
+                                  {formatCurrency(item.purchaseTotal)}
+                                </td>
+                                <td
+                                  className={`text-end ${
+                                    (item.estimatedProfit ?? 0) >= 0
+                                      ? "text-success fw-bold"
+                                      : "text-danger fw-bold"
+                                  }`}
+                                >
+                                  {formatCurrency(item.estimatedProfit)}
+                                </td>
+                                <td>
+                                  <Badge
+                                    bg={
+                                      !item.sellingStatus
+                                        ? "secondary"
+                                        : item.sellingStatus === "Shipped"
+                                        ? "success"
+                                        : item.sellingStatus === "Pending"
+                                        ? "warning"
+                                        : "secondary"
+                                    }
+                                  >
+                                    {item.sellingStatus || "Unknown"}
+                                  </Badge>
+                                </td>
+                                <td>{item.trackingId || "N/A"}</td>
+                                <td>{item.vendorName || "N/A"}</td>
+                                <td>{item.shipMethod || "N/A"}</td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan="15" className="text-center py-4">
+                                {amazonSearchTerm
+                                  ? "No orders found matching your search"
+                                  : "No orders found for the selected period"}
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </Table>
+                    </div>
+                    {renderPagination(
+                      amazonCurrentPage,
+                      amazonTotalPages,
+                      setAmazonCurrentPage,
+                      filteredAmazonOrders.length,
+                      amazonItemsPerPage
+                    )}
+                  </>
+                )}
+              </Card.Body>
+            </Card>
+          )}
         </Tab>
       </Tabs>
     </Container>

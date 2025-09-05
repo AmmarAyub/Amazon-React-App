@@ -3,6 +3,7 @@ import React, { useEffect } from "react";
 import Login from "./components/Login";
 import Layout from "./components/layout/Layout";
 import Dashboard from "./components/Dashboard";
+import AmazonDashboard from "./components/dashboard/AmazonDashboard";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./App.css";
@@ -10,6 +11,8 @@ import Products from "./pages/Product";
 import Orders from "./pages/Orders ";
 import UserList from "./pages/User";
 import "bootstrap/dist/css/bootstrap.min.css";
+import SalesDashboard from "./components/dashboard/SalesDashboard";
+import CustomerLedger from "./pages/CustomerLedger";
 
 function App() {
   useEffect(() => {
@@ -33,7 +36,9 @@ function App() {
             }
           >
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="./pages/Products" element={<Products />} />
+            <Route path="/dashboard/amazon" element={<AmazonDashboard />} />
+            <Route path="/dashboard/sales" element={<SalesDashboard />} />
+            <Route path="/customerledger" element={<CustomerLedger />} />
             <Route path="/products" element={<Products />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/users" element={<UserList />} />

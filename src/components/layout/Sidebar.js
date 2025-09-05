@@ -12,7 +12,8 @@ import {
   Typography,
   styled,
   IconButton,
-  Tooltip
+  Tooltip,
+  Collapse
 } from '@mui/material';
 import { 
   Dashboard as DashboardIcon,
@@ -20,13 +21,17 @@ import {
   People as UsersIcon,
   ChevronLeft,
   ChevronRight,
-  Menu as MenuIcon
+  Menu as MenuIcon,
+  ExpandLess,
+  ExpandMore,
+  List as ListIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 
 const drawerWidth = 240;
 const collapsedWidth = 70;
 
+// Styled components
 const AmazonLogo = styled(Box)(({ theme, collapsed }) => ({
   display: 'flex',
   alignItems: 'center',
@@ -60,28 +65,59 @@ const ToggleButton = styled(IconButton)(({ theme, collapsed }) => ({
   }
 }));
 
+const NestedListItem = styled(ListItem)(({ theme, level }) => ({
+  paddingLeft: theme.spacing(level * 2 + 2),
+  minHeight: '40px',
+  '& .MuiListItemText-root': {
+    '& .MuiTypography-root': {
+      fontSize: '0.85rem',
+    }
+  }
+}));
+
 const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
   const { currentUser } = useAuth();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const [dashboardListOpen, setDashboardListOpen] = useState(false);
 
   const toggleSidebar = () => {
     setCollapsed(!collapsed);
+    // Close submenu when collapsing sidebar
+    if (!collapsed && dashboardListOpen) {
+      setDashboardListOpen(false);
+    }
+  };
+
+  const handleDashboardListClick = () => {
+    setDashboardListOpen(!dashboardListOpen);
   };
 
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
+    { text: 'Dashboard-List', icon: <ListIcon />, path: '#', hasSubmenu: true },
+    { text: 'CustomerLedger', icon: <ProductsIcon />, path: '/customerledger' },
     { text: 'Products', icon: <ProductsIcon />, path: '/products' },
     { text: 'Orders', icon: <ProductsIcon />, path: '/orders' },
     { text: 'Users', icon: <UsersIcon />, path: '/users' },
   ];
+
+  const dashboardListItems = [
+    { text: 'Amazon-Dashboard', path: '/dashboard/amazon' },
+    { text: 'Sales Dashboard', path: '/dashboard/sales' },
+    { text: 'Reports', path: '/dashboard/reports' },
+  ];
+
+  const isDashboardListActive = () => {
+    return dashboardListItems.some(item => location.pathname.startsWith(item.path));
+  };
 
   const drawer = (
     <Box sx={{ 
       display: 'flex', 
       flexDirection: 'column', 
       height: '100%',
-      backgroundColor: (theme) => theme.palette.background.paper,
+      backgroundColor: '#ffffff',
       overflow: 'hidden',
       '&::-webkit-scrollbar': {
         display: 'none'
@@ -111,61 +147,167 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
           }
         }
       }}>
-        {menuItems.map((item) => (
-          <ListItem 
-            button 
-            key={item.text}
-            component={Link}
-            to={item.path}
-            selected={location.pathname === item.path}
-            sx={{
-              borderRadius: 1,
-              mx: 1,
-              my: 0.5,
-              justifyContent: collapsed ? 'center' : 'flex-start',
-              minHeight: '48px',
-              '&.Mui-selected': {
-                backgroundColor: (theme) => theme.palette.primary.main,
-                color: (theme) => theme.palette.primary.contrastText,
-                '& .MuiListItemIcon-root': {
-                  color: (theme) => theme.palette.primary.contrastText,
-                },
-                '&:hover': {
-                  backgroundColor: (theme) => theme.palette.primary.dark,
-                }
-              },
-              '&:hover': {
-                backgroundColor: (theme) => theme.palette.action.hover,
-              },
-            }}
-          >
-            <Tooltip title={collapsed ? item.text : ''} placement="right">
-              <ListItemIcon sx={{ 
-                minWidth: 'auto',
-                mr: collapsed ? 0 : 2,
-                justifyContent: 'center',
-                color: 'inherit'
-              }}>
-                {item.icon}
-              </ListItemIcon>
-            </Tooltip>
-            {!collapsed && (
-              <ListItemText 
-                primary={item.text} 
-                primaryTypographyProps={{ 
-                  fontSize: '0.9rem',
-                  fontWeight: 'medium' 
+        {menuItems.map((item) => {
+          if (item.hasSubmenu) {
+            return (
+              <React.Fragment key={item.text}>
+                <ListItem 
+                  button 
+                  onClick={handleDashboardListClick}
+                  selected={isDashboardListActive()}
+                  sx={{
+                    borderRadius: 1,
+                    mx: 1,
+                    my: 0.5,
+                    justifyContent: collapsed ? 'center' : 'flex-start',
+                    minHeight: '48px',
+                    color: '#000000',
+                    '&.Mui-selected': {
+                      backgroundColor: '#f0f5ff',
+                      color: '#1976d2',
+                      borderRight: '3px solid #1976d2',
+                      '& .MuiListItemIcon-root': {
+                        color: '#1976d2',
+                      },
+                      '&:hover': {
+                        backgroundColor: '#e6f0ff',
+                      }
+                    },
+                    '&:hover': {
+                      backgroundColor: '#f5f5f5',
+                    },
+                  }}
+                >
+                  <Tooltip title={collapsed ? item.text : ''} placement="right">
+                    <ListItemIcon sx={{ 
+                      minWidth: 'auto',
+                      mr: collapsed ? 0 : 2,
+                      justifyContent: 'center',
+                      color: 'inherit'
+                    }}>
+                      {item.icon}
+                    </ListItemIcon>
+                  </Tooltip>
+                  {!collapsed && (
+                    <>
+                      <ListItemText 
+                        primary={item.text} 
+                        primaryTypographyProps={{ 
+                          fontSize: '0.9rem',
+                          fontWeight: 'medium',
+                          color: 'inherit'
+                        }}
+                      />
+                      {dashboardListOpen ? <ExpandLess /> : <ExpandMore />}
+                    </>
+                  )}
+                </ListItem>
+                
+                {/* Sub-items for Dashboard-List */}
+                {!collapsed && (
+                  <Collapse in={dashboardListOpen} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding>
+                      {dashboardListItems.map((subItem) => (
+                        <NestedListItem 
+                          button 
+                          key={subItem.text}
+                          component={Link}
+                          to={subItem.path}
+                          selected={location.pathname === subItem.path}
+                          level={1}
+                          sx={{
+                            borderRadius: 1,
+                            mx: 1,
+                            my: 0.5,
+                            color: '#000000',
+                            '&.Mui-selected': {
+                              backgroundColor: '#f0f5ff',
+                              color: '#1976d2',
+                              borderRight: '3px solid #1976d2',
+                              '&:hover': {
+                                backgroundColor: '#e6f0ff',
+                              }
+                            },
+                            '&:hover': {
+                              backgroundColor: '#f5f5f5',
+                            },
+                          }}
+                        >
+                          <ListItemText 
+                            primary={subItem.text} 
+                            primaryTypographyProps={{ 
+                              fontSize: '0.85rem',
+                              color: 'inherit'
+                            }}
+                          />
+                        </NestedListItem>
+                      ))}
+                    </List>
+                  </Collapse>
+                )}
+              </React.Fragment>
+            );
+          } else {
+            return (
+              <ListItem 
+                button 
+                key={item.text}
+                component={Link}
+                to={item.path}
+                selected={location.pathname === item.path}
+                sx={{
+                  borderRadius: 1,
+                  mx: 1,
+                  my: 0.5,
+                  justifyContent: collapsed ? 'center' : 'flex-start',
+                  minHeight: '48px',
+                  color: '#000000',
+                  '&.Mui-selected': {
+                    backgroundColor: '#f0f5ff',
+                    color: '#1976d2',
+                    borderRight: '3px solid #1976d2',
+                    '& .MuiListItemIcon-root': {
+                      color: '#1976d2',
+                    },
+                    '&:hover': {
+                      backgroundColor: '#e6f0ff',
+                    }
+                  },
+                  '&:hover': {
+                    backgroundColor: '#f5f5f5',
+                  },
                 }}
-              />
-            )}
-          </ListItem>
-        ))}
+              >
+                <Tooltip title={collapsed ? item.text : ''} placement="right">
+                  <ListItemIcon sx={{ 
+                    minWidth: 'auto',
+                    mr: collapsed ? 0 : 2,
+                    justifyContent: 'center',
+                    color: 'inherit'
+                  }}>
+                    {item.icon}
+                  </ListItemIcon>
+                </Tooltip>
+                {!collapsed && (
+                  <ListItemText 
+                    primary={item.text} 
+                    primaryTypographyProps={{ 
+                      fontSize: '0.9rem',
+                      fontWeight: 'medium',
+                      color: 'inherit'
+                    }}
+                  />
+                )}
+              </ListItem>
+            );
+          }
+        })}
       </List>
       
       {/* User Profile Section */}
       <Box sx={{ 
         p: collapsed ? 1 : 2, 
-        backgroundColor: (theme) => theme.palette.grey[100],
+        backgroundColor: '#f8f9fa',
         borderTop: (theme) => `1px solid ${theme.palette.divider}`
       }}>
         <Box sx={{ 
@@ -178,7 +320,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
               width: 40, 
               height: 40, 
               mr: collapsed ? 0 : 2,
-              bgcolor: 'primary.main',
+              bgcolor: '#1976d2',
               color: 'white'
             }}
           >
@@ -186,7 +328,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
           </Avatar>
           {!collapsed && (
             <Box sx={{ overflow: 'hidden' }}>
-              <Typography variant="subtitle2" fontWeight="medium" noWrap>
+              <Typography variant="subtitle2" fontWeight="medium" noWrap color="#000000">
                 {currentUser?.email}
               </Typography>
               <Typography variant="caption" color="textSecondary" noWrap>

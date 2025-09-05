@@ -1,0 +1,136 @@
+.dashboard-container {
+  background-color: #f9f9f9;
+  font-family: Arial, sans-serif;
+  min-height: 100vh;
+}
+
+.dashboard-header {
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #343a40;
+  padding: 0.5rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Card styling */
+.card-custom {
+  border-radius: 0.5rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  height: 100%;
+}
+
+.card-custom:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+.card-custom .card-body {
+  padding: 0.75rem;
+}
+
+.table-custom {
+  font-size: 0.85rem;
+  margin-bottom: 0;
+}
+
+.table-custom th {
+  font-weight: 600;
+  background-color: #f8f9fa;
+}
+
+.currency-usd {
+  text-align: right;
+  font-family: monospace;
+  font-weight: 500;
+}
+
+/* Responsive table adjustments */
+.table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Compact table styling */
+.table-sm td, .table-sm th {
+  padding: 0.4rem;
+}
+
+/* Hover effects */
+.table-hover tbody tr:hover {
+  background-color: rgba(0, 123, 255, 0.05);
+}
+
+/* Text truncation */
+.text-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .dashboard-header {
+    font-size: 1.2rem;
+    padding: 0.4rem;
+  }
+  
+  .card-custom .card-body {
+    padding: 0.5rem;
+  }
+  
+  .table-custom {
+    font-size: 0.8rem;
+  }
+  
+  .currency-usd {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .card-custom {
+    margin-bottom: 1rem;
+  }
+}
+
+/* Custom scrollbar for tables */
+.table-responsive::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Full table display on larger screens */
+@media (min-width: 1200px) {
+  .d-xl-table-cell {
+    display: table-cell !important;
+  }
+}
+
+@media (min-width: 992px) {
+  .d-lg-table-cell {
+    display: table-cell !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .d-md-table-cell {
+    display: table-cell !important;
+  }
+}

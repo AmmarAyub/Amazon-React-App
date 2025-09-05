@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Container, Row, Col, Card, Tab, Nav, Table, Form, Button, Spinner, InputGroup } from 'react-bootstrap';
+import { Container, Row, Col, Card, Tab, Nav, Table, Form, Button, Spinner, InputGroup, Alert } from 'react-bootstrap';
 import "./CustomerLedger.css";
 
 const CustomerLedger = () => {
@@ -13,6 +13,11 @@ const CustomerLedger = () => {
     transactions: false
   });
   const [counts, setCounts] = useState({
+    customers: 0,
+    vendors: 0,
+    transactions: 0
+  });
+  const [displayCounts, setDisplayCounts] = useState({
     customers: 0,
     vendors: 0,
     transactions: 0
@@ -43,7 +48,7 @@ const CustomerLedger = () => {
 
   // Format date for API (YYYY-MM-DD)
   const formatDateForAPI = (dateString) => {
-    if (!dateString) return '';
+    if (!dateString) return null;
     const date = new Date(dateString);
     return date.toISOString().split('T')[0];
   };
@@ -56,24 +61,38 @@ const CustomerLedger = () => {
     setError(null);
     
     try {
-      let url = `${API_BASE}/LoadCustomers`;
-      const options = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          page: page,
-          pageSize: 20
-        })
-      };
+      let url, options;
       
-      if (isFiltering && (filters.customers.startDate || filters.customers.endDate)) {
+      if (isFiltering && (filters.customers.startDate || filters.customers.endDate || filters.customers.search)) {
+        // Use the filter endpoint with search
         url = `${API_BASE}/InvoiceSelectDate`;
-        options.body = JSON.stringify({
-          startDate: formatDateForAPI(filters.customers.startDate),
-          endDate: formatDateForAPI(filters.customers.endDate)
-        });
+        options = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            startDate: formatDateForAPI(filters.customers.startDate),
+            endDate: formatDateForAPI(filters.customers.endDate),
+            search: filters.customers.search,
+            page: page,
+            pageSize: 20
+          })
+        };
+      } else {
+        // Use the regular load endpoint
+        url = `${API_BASE}/LoadCustomers`;
+        options = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            page: page,
+            pageSize: 20,
+            search: filters.customers.search // Include search even in regular load
+          })
+        };
       }
       
       const response = await fetch(url, options);
@@ -87,15 +106,17 @@ const CustomerLedger = () => {
       
       if (isFiltering) {
         setCustomers(data.data || []);
-        setCounts(prev => ({ ...prev, customers: data.customercount || 0 }));
-        setPagination(prev => ({ ...prev, customers: { page: 1, hasMore: true } }));
+        setCounts(prev => ({ ...prev, customers: data.totalCount || data.customercount || 0 }));
+        setDisplayCounts(prev => ({ ...prev, customers: (data.data || []).length }));
+        setPagination(prev => ({ ...prev, customers: { page: 1, hasMore: data.hasMore || true } }));
       } else {
         setCustomers(prev => [...prev, ...(data.data || [])]);
+        setDisplayCounts(prev => ({ ...prev, customers: prev.customers + (data.data || []).length }));
         setPagination(prev => ({
           ...prev,
           customers: { 
             page: page + 1, 
-            hasMore: data.data && data.data.length > 0 
+            hasMore: data.hasMore || (data.data && data.data.length > 0)
           }
         }));
       }
@@ -120,24 +141,38 @@ const CustomerLedger = () => {
     setError(null);
     
     try {
-      let url = `${API_BASE}/LoadVendors`;
-      const options = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          page: page,
-          pageSize: 20
-        })
-      };
+      let url, options;
       
-      if (isFiltering && (filters.vendors.startDate || filters.vendors.endDate)) {
+      if (isFiltering && (filters.vendors.startDate || filters.vendors.endDate || filters.vendors.search)) {
+        // Use the filter endpoint with search
         url = `${API_BASE}/BillSelectDate`;
-        options.body = JSON.stringify({
-          startDate: formatDateForAPI(filters.vendors.startDate),
-          endDate: formatDateForAPI(filters.vendors.endDate)
-        });
+        options = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            startDate: formatDateForAPI(filters.vendors.startDate),
+            endDate: formatDateForAPI(filters.vendors.endDate),
+            search: filters.vendors.search,
+            page: page,
+            pageSize: 20
+          })
+        };
+      } else {
+        // Use the regular load endpoint
+        url = `${API_BASE}/LoadVendors`;
+        options = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            page: page,
+            pageSize: 20,
+            search: filters.vendors.search // Include search even in regular load
+          })
+        };
       }
       
       const response = await fetch(url, options);
@@ -151,15 +186,17 @@ const CustomerLedger = () => {
       
       if (isFiltering) {
         setVendors(data.data || []);
-        setCounts(prev => ({ ...prev, vendors: data.vendorcount || 0 }));
-        setPagination(prev => ({ ...prev, vendors: { page: 1, hasMore: true } }));
+        setCounts(prev => ({ ...prev, vendors: data.totalCount || data.vendorcount || 0 }));
+        setDisplayCounts(prev => ({ ...prev, vendors: (data.data || []).length }));
+        setPagination(prev => ({ ...prev, vendors: { page: 1, hasMore: data.hasMore || true } }));
       } else {
         setVendors(prev => [...prev, ...(data.data || [])]);
+        setDisplayCounts(prev => ({ ...prev, vendors: prev.vendors + (data.data || []).length }));
         setPagination(prev => ({
           ...prev,
           vendors: { 
             page: page + 1, 
-            hasMore: data.data && data.data.length > 0 
+            hasMore: data.hasMore || (data.data && data.data.length > 0)
           }
         }));
       }
@@ -184,23 +221,28 @@ const CustomerLedger = () => {
     setError(null);
     
     try {
-      let url = `${API_BASE}/LoadTransactions`;
+      const url = `${API_BASE}/LoadTransactions`;
+      
+      // Prepare request body according to your API
+      const requestBody = {
+        page: page,
+        pageSize: 20,
+        search: filters.transactions.search // Include search parameter
+      };
+      
+      // Add date filters if provided
+      if (isFiltering && (filters.transactions.startDate || filters.transactions.endDate)) {
+        requestBody.startDate = formatDateForAPI(filters.transactions.startDate);
+        requestBody.endDate = formatDateForAPI(filters.transactions.endDate);
+      }
+      
       const options = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          page: page,
-          pageSize: 20
-        })
+        body: JSON.stringify(requestBody)
       };
-      
-      if (isFiltering && (filters.transactions.startDate || filters.transactions.endDate)) {
-        url = `${API_BASE}/TransactionDateFilter?startDate=${formatDateForAPI(filters.transactions.startDate)}&endDate=${formatDateForAPI(filters.transactions.endDate)}`;
-      } else {
-        url = `${url}?page=${page}&pageSize=20`;
-      }
       
       const response = await fetch(url, options);
       
@@ -212,16 +254,24 @@ const CustomerLedger = () => {
       const data = await response.json();
       
       if (isFiltering) {
-        setTransactions(data.data?.Transactions || []);
-        setCounts(prev => ({ ...prev, transactions: data.transaccount || 0 }));
-        setPagination(prev => ({ ...prev, transactions: { page: 1, hasMore: true } }));
+        setTransactions(data.data || []);
+        setCounts(prev => ({ ...prev, transactions: data.totalCount || 0 }));
+        setDisplayCounts(prev => ({ ...prev, transactions: (data.data || []).length }));
+        setPagination(prev => ({ 
+          ...prev, 
+          transactions: { 
+            page: 1, 
+            hasMore: data.hasMore || true 
+          } 
+        }));
       } else {
-        setTransactions(prev => [...prev, ...(data.data?.Transactions || [])]);
+        setTransactions(prev => [...prev, ...(data.data || [])]);
+        setDisplayCounts(prev => ({ ...prev, transactions: prev.transactions + (data.data || []).length }));
         setPagination(prev => ({
           ...prev,
           transactions: { 
             page: page + 1, 
-            hasMore: data.data && data.data.Transactions && data.data.Transactions.length > 0 
+            hasMore: data.hasMore || (data.data && data.data.length > 0)
           }
         }));
       }
@@ -272,30 +322,36 @@ const CustomerLedger = () => {
     }
   };
 
-  // Filter data based on search term
-  const filterData = (data, tab) => {
-    const searchTerm = filters[tab].search.toLowerCase();
-    if (!searchTerm) return data;
-    
-    return data.filter(item => {
-      if (tab === 'customers') {
-        return (
-          (item.Name || '').toLowerCase().includes(searchTerm) ||
-          (item.CompanyName || '').toLowerCase().includes(searchTerm)
-        );
-      } else if (tab === 'vendors') {
-        return (
-          (item.Name || '').toLowerCase().includes(searchTerm) ||
-          (item.CompanyName || '').toLowerCase().includes(searchTerm)
-        );
-      } else if (tab === 'transactions') {
-        return (
-          (item.Original_Description || '').toLowerCase().includes(searchTerm) ||
-          (item.CompanyCharged || '').toLowerCase().includes(searchTerm)
-        );
+  // Handle search with Enter key
+  const handleSearchKeyPress = (e, tab) => {
+    if (e.key === 'Enter') {
+      applyFilters(tab);
+    }
+  };
+
+  // Clear search filter
+  const clearSearch = (tab) => {
+    setFilters(prev => ({
+      ...prev,
+      [tab]: {
+        ...prev[tab],
+        search: ''
       }
-      return true;
-    });
+    }));
+    applyFilters(tab);
+  };
+
+  // Clear date filters
+  const clearDateFilters = (tab) => {
+    setFilters(prev => ({
+      ...prev,
+      [tab]: {
+        ...prev[tab],
+        startDate: '',
+        endDate: ''
+      }
+    }));
+    applyFilters(tab);
   };
 
   // Format currency
@@ -311,16 +367,16 @@ const CustomerLedger = () => {
     return date.toLocaleDateString();
   };
 
-  // Set up scroll listeners with proper dependency handling
+  // Set up scroll listeners
   useEffect(() => {
     // Handle scroll for infinite loading
     const handleScroll = (ref, tab) => {
-      if (!ref.current) return;
+      if (!ref.current || loading[tab]) return;
       
       const { scrollTop, scrollHeight, clientHeight } = ref.current;
       const isNearBottom = scrollTop + clientHeight >= scrollHeight - 50;
       
-      if (isNearBottom && !loading[tab]) {
+      if (isNearBottom && pagination[tab].hasMore) {
         if (tab === 'customers') {
           fetchCustomers(pagination.customers.page, false);
         } else if (tab === 'vendors') {
@@ -369,6 +425,12 @@ const CustomerLedger = () => {
 
   return (
     <Container fluid className="content-wrap py-3">
+      {error && (
+        <Alert variant="danger" dismissible onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+      
       <Row>
         <Col md={12}>
           <Card className="shadow-sm">
@@ -421,6 +483,16 @@ const CustomerLedger = () => {
                               >
                                 {loading.customers ? <Spinner animation="border" size="sm" /> : 'Filter'}
                               </Button>
+                              {(filters.customers.startDate || filters.customers.endDate) && (
+                                <Button 
+                                  variant="outline-secondary" 
+                                  size="sm" 
+                                  onClick={() => clearDateFilters('customers')}
+                                  className="w-100 mt-1"
+                                >
+                                  Clear Dates
+                                </Button>
+                              )}
                             </Col>
                           </Row>
                         </Col>
@@ -438,11 +510,27 @@ const CustomerLedger = () => {
                                   placeholder="Search customers..."
                                   value={filters.customers.search}
                                   onChange={(e) => handleFilterChange('customers', 'search', e.target.value)}
+                                  onKeyPress={(e) => handleSearchKeyPress(e, 'customers')}
                                 />
+                                <Button 
+                                  variant="outline-primary" 
+                                  onClick={() => applyFilters('customers')}
+                                  disabled={loading.customers}
+                                >
+                                  {loading.customers ? <Spinner animation="border" size="sm" /> : 'Search'}
+                                </Button>
+                                {filters.customers.search && (
+                                  <Button 
+                                    variant="outline-secondary" 
+                                    onClick={() => clearSearch('customers')}
+                                  >
+                                    <i className="fas fa-times"></i>
+                                  </Button>
+                                )}
                               </InputGroup>
                             </Col>
                             <Col lg={5} md={5} sm={5} className="text-nowrap">
-                              <h6 className="mb-0">Total: <span className="fw-bold">{counts.customers}</span></h6>
+                              <h6 className="mb-0">Showing: <span className="fw-bold">{displayCounts.customers}</span> of <span className="fw-bold">{counts.customers}</span></h6>
                             </Col>
                           </Row>
                         </Col>
@@ -469,7 +557,7 @@ const CustomerLedger = () => {
                         >
                           <Table striped bordered hover size="sm" className="mb-0">
                             <tbody>
-                              {filterData(customers, 'customers').map((customer, index) => (
+                              {customers.map((customer, index) => (
                                 <tr key={index}>
                                   <td width="17%" className="align-middle">
                                     {customer.name || '-'}
@@ -547,6 +635,16 @@ const CustomerLedger = () => {
                               >
                                 {loading.vendors ? <Spinner animation="border" size="sm" /> : 'Filter'}
                               </Button>
+                              {(filters.vendors.startDate || filters.vendors.endDate) && (
+                                <Button 
+                                  variant="outline-secondary" 
+                                  size="sm" 
+                                  onClick={() => clearDateFilters('vendors')}
+                                  className="w-100 mt-1"
+                                >
+                                  Clear Dates
+                                </Button>
+                              )}
                             </Col>
                           </Row>
                         </Col>
@@ -564,11 +662,27 @@ const CustomerLedger = () => {
                                   placeholder="Search vendors..."
                                   value={filters.vendors.search}
                                   onChange={(e) => handleFilterChange('vendors', 'search', e.target.value)}
+                                  onKeyPress={(e) => handleSearchKeyPress(e, 'vendors')}
                                 />
+                                <Button 
+                                  variant="outline-primary" 
+                                  onClick={() => applyFilters('vendors')}
+                                  disabled={loading.vendors}
+                                >
+                                  {loading.vendors ? <Spinner animation="border" size="sm" /> : 'Search'}
+                                </Button>
+                                {filters.vendors.search && (
+                                  <Button 
+                                    variant="outline-secondary" 
+                                    onClick={() => clearSearch('vendors')}
+                                  >
+                                    <i className="fas fa-times"></i>
+                                  </Button>
+                                )}
                               </InputGroup>
                             </Col>
                             <Col lg={5} md={5} sm={5} className="text-nowrap">
-                              <h6 className="mb-0">Total: <span className="fw-bold">{counts.vendors}</span></h6>
+                              <h6 className="mb-0">Showing: <span className="fw-bold">{displayCounts.vendors}</span> of <span className="fw-bold">{counts.vendors}</span></h6>
                             </Col>
                           </Row>
                         </Col>
@@ -602,7 +716,7 @@ const CustomerLedger = () => {
                                   </td>
                                 </tr>
                               )}
-                              {filterData(vendors, 'vendors').map((vendor, index) => (
+                              {vendors.map((vendor, index) => (
                                 <tr key={index}>
                                   <td width="16%" className="align-middle">
                                     {vendor.name || '-'}
@@ -680,6 +794,16 @@ const CustomerLedger = () => {
                               >
                                 {loading.transactions ? <Spinner animation="border" size="sm" /> : 'Filter'}
                               </Button>
+                              {(filters.transactions.startDate || filters.transactions.endDate) && (
+                                <Button 
+                                  variant="outline-secondary" 
+                                  size="sm" 
+                                  onClick={() => clearDateFilters('transactions')}
+                                  className="w-100 mt-1"
+                                >
+                                  Clear Dates
+                                </Button>
+                              )}
                             </Col>
                           </Row>
                         </Col>
@@ -697,11 +821,27 @@ const CustomerLedger = () => {
                                   placeholder="Search transactions..."
                                   value={filters.transactions.search}
                                   onChange={(e) => handleFilterChange('transactions', 'search', e.target.value)}
+                                  onKeyPress={(e) => handleSearchKeyPress(e, 'transactions')}
                                 />
+                                <Button 
+                                  variant="outline-primary" 
+                                  onClick={() => applyFilters('transactions')}
+                                  disabled={loading.transactions}
+                                >
+                                  {loading.transactions ? <Spinner animation="border" size="sm" /> : 'Search'}
+                                </Button>
+                                {filters.transactions.search && (
+                                  <Button 
+                                    variant="outline-secondary" 
+                                    onClick={() => clearSearch('transactions')}
+                                  >
+                                    <i className="fas fa-times"></i>
+                                  </Button>
+                                )}
                               </InputGroup>
                             </Col>
                             <Col lg={5} md={5} sm={5} className="text-nowrap">
-                              <h6 className="mb-0">Total: <span className="fw-bold">{counts.transactions}</span></h6>
+                              <h6 className="mb-0">Showing: <span className="fw-bold">{displayCounts.transactions}</span> of <span className="fw-bold">{counts.transactions}</span></h6>
                             </Col>
                           </Row>
                         </Col>
@@ -734,7 +874,7 @@ const CustomerLedger = () => {
                                   </td>
                                 </tr>
                               )}
-                              {filterData(transactions, 'transactions').map((transaction, index) => (
+                              {transactions.map((transaction, index) => (
                                 <tr key={index}>
                                   <td width="10%" className="align-middle">
                                     {formatDate(transaction.date)}

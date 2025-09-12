@@ -1,0 +1,340 @@
+/* SQLBackup.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --primary: #4361ee;
+  --primary-dark: #3a56d4;
+  --secondary: #6c757d;
+  --success: #10b981;
+  --info: #3b82f6;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --light: #f8f9fa;
+  --dark: #343a40;
+  --gray-100: #f8f9fa;
+  --gray-200: #e9ecef;
+  --gray-300: #dee2e6;
+  --gray-400: #ced4da;
+  --gray-500: #adb5bd;
+  --gray-600: #6c757d;
+  --gray-700: #495057;
+  --gray-800: #343a40;
+  --gray-900: #212529;
+  --border-radius: 8px;
+  --shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+  --transition: all 0.2s ease;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  background-color: #f5f7fb;
+  color: var(--gray-800);
+  line-height: 1.6;
+}
+
+.sql-backup-container {
+  padding: 1rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.sql-backup-card {
+  background: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.sql-backup-header {
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.sql-backup-header h2 {
+  margin: 0;
+  color: var(--gray-800);
+  font-weight: 600;
+  font-size: 1.5rem;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.backup-count {
+  background-color: var(--gray-100);
+  color: var(--gray-700);
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.backup-count.loading {
+  animation: pulse 1.5s infinite;
+}
+
+.backup-count.error {
+  background-color: #fee2e2;
+  color: var(--danger);
+}
+
+.refresh-button {
+  background: var(--gray-100);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.refresh-button:hover {
+  background: var(--gray-200);
+  transform: rotate(45deg);
+}
+
+.last-updated {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+}
+
+/* Loading state */
+.loading-state {
+  padding: 3rem 1.5rem;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--gray-200);
+  border-top: 3px solid var(--primary);
+  border-radius: 50%;
+  margin: 0 auto 1rem;
+  animation: spin 1s linear infinite;
+}
+
+.loading-state p {
+  color: var(--gray-600);
+  margin: 0;
+}
+
+/* Error state */
+.error-state {
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.error-state h3 {
+  color: var(--danger);
+  margin: 0 0 0.5rem;
+}
+
+.error-state p {
+  color: var(--gray-700);
+  margin: 0 0 1rem;
+}
+
+.api-url {
+  background-color: var(--gray-100);
+  padding: 0.75rem;
+  border-radius: var(--border-radius);
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+}
+
+.api-url code {
+  background-color: var(--gray-200);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  color: var(--danger);
+}
+
+.retry-button {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.retry-button:hover {
+  background-color: var(--primary-dark);
+}
+
+/* Table styles */
+.table-container {
+  overflow-x: auto;
+  padding: 0 0.5rem;
+}
+
+.backup-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.backup-table th {
+  background-color: var(--gray-100);
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--gray-700);
+  border-bottom: 2px solid var(--gray-300);
+}
+
+.backup-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--gray-200);
+  vertical-align: top;
+}
+
+.backup-table tr:hover {
+  background-color: var(--gray-50);
+}
+
+.backup-type-badge {
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.device-name {
+  word-break: break-all;
+  max-width: 200px;
+}
+
+/* No data state */
+.no-data {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--gray-600);
+}
+
+.no-data-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.no-data h3 {
+  margin: 0 0 0.5rem;
+  font-weight: 500;
+}
+
+.no-data p {
+  margin: 0;
+}
+
+/* Animations */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .sql-backup-container {
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .header-actions {
+    align-self: stretch;
+    justify-content: space-between;
+  }
+  
+  .backup-table {
+    font-size: 0.8125rem;
+  }
+  
+  .backup-table th,
+  .backup-table td {
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .sql-backup-header {
+    padding: 1rem;
+  }
+  
+  .backup-table {
+    display: block;
+  }
+  
+  .backup-table thead {
+    display: none;
+  }
+  
+  .backup-table tr {
+    display: block;
+    margin-bottom: 1rem;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--border-radius);
+  }
+  
+  .backup-table td {
+    display: block;
+    text-align: right;
+    padding: 0.75rem;
+    position: relative;
+    border-bottom: 1px solid var(--gray-200);
+  }
+  
+  .backup-table td:last-child {
+    border-bottom: none;
+  }
+  
+  .backup-table td::before {
+    content: attr(data-label);
+    float: left;
+    font-weight: 600;
+    color: var(--gray-700);
+  }
+  
+  .device-name {
+    max-width: none;
+  }
+}

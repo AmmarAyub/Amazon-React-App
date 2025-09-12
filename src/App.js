@@ -13,6 +13,9 @@ import UserList from "./pages/User";
 import "bootstrap/dist/css/bootstrap.min.css";
 import SalesDashboard from "./components/dashboard/SalesDashboard";
 import CustomerLedger from "./pages/CustomerLedger";
+import SQLBackup from "./pages/SQLBackup ";
+import Partners from "./pages/Partners Management/Partners";
+import PartnerCreate from "./pages/Partners Management/PartnerCreate";
 
 function App() {
   useEffect(() => {
@@ -40,8 +43,11 @@ function App() {
             <Route path="/dashboard/sales" element={<SalesDashboard />} />
             <Route path="/customerledger" element={<CustomerLedger />} />
             <Route path="/products" element={<Products />} />
+            <Route path="/partners" element={<Partners />} />
+            <Route path="/partnerCreate" element={<PartnerCreate />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/users" element={<UserList />} />
+            <Route path="/sqlbackup" element={<SQLBackup />} />
           </Route>
         </Routes>
       </BrowserRouter>

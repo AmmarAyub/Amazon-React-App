@@ -1,0 +1,56 @@
+#bb {
+  position: relative;
+  margin-top: 30px;
+  padding: 2%;
+  overflow: hidden;
+  box-shadow: 1px 1px 15px -5px grey;
+  transition: all 0.3s ease;
+  background-color: white;
+}
+
+.form-control {
+  border: none;
+  border-bottom: 1px solid grey;
+  padding: 0.5em;
+  outline: none;
+  border-radius: 0;
+}
+
+.react-select-container .react-select__control {
+  border: none !important;
+  border-bottom: 1px solid grey !important;
+  border-radius: 0;
+  padding: 0.5em 0;
+  outline: none;
+  box-shadow: none !important;
+  min-height: calc(3.5rem + 2px);
+}
+
+.react-select-container .react-select__control:hover {
+  border-color: grey !important;
+}
+
+.react-select-container .react-select__value-container {
+  padding: 0 8px;
+}
+
+.react-select-container .react-select__input {
+  margin: 0;
+  padding: 0;
+}
+
+.react-select-container .react-select__indicators {
+  padding: 4px;
+}
+
+.form-label {
+  font-weight: 500;
+}
+
+.floating-label {
+  position: relative;
+}
+
+.floating-label > label {
+  padding: 0.5em;
+}

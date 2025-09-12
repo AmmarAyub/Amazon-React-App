@@ -12,6 +12,7 @@ const CustomerLedger = () => {
     vendors: false,
     transactions: false
   });
+  // eslint-disable-next-line no-unused-vars
   const [counts, setCounts] = useState({
     customers: 0,
     vendors: 0,
@@ -56,7 +57,7 @@ const CustomerLedger = () => {
   // Fetch customers data
   const fetchCustomers = useCallback(async (page = 1, isFiltering = false) => {
     if (loading.customers || (!isFiltering && !pagination.customers.hasMore)) return;
-    
+    debugger;
     setLoading(prev => ({ ...prev, customers: true }));
     setError(null);
     
@@ -103,15 +104,17 @@ const CustomerLedger = () => {
       }
       
       const data = await response.json();
-      
+      debugger;
       if (isFiltering) {
+        debugger;
         setCustomers(data.data || []);
         setCounts(prev => ({ ...prev, customers: data.totalCount || data.customercount || 0 }));
         setDisplayCounts(prev => ({ ...prev, customers: (data.data || []).length }));
         setPagination(prev => ({ ...prev, customers: { page: 1, hasMore: data.hasMore || true } }));
       } else {
+        debugger;
         setCustomers(prev => [...prev, ...(data.data || [])]);
-        setDisplayCounts(prev => ({ ...prev, customers: prev.customers + (data.data || []).length }));
+        setDisplayCounts(prev => ({ ...prev, customers: prev.customers + (data.totalCount || []) }));
         setPagination(prev => ({
           ...prev,
           customers: { 
@@ -191,7 +194,7 @@ const CustomerLedger = () => {
         setPagination(prev => ({ ...prev, vendors: { page: 1, hasMore: data.hasMore || true } }));
       } else {
         setVendors(prev => [...prev, ...(data.data || [])]);
-        setDisplayCounts(prev => ({ ...prev, vendors: prev.vendors + (data.data || []).length }));
+        setDisplayCounts(prev => ({ ...prev, vendors: prev.vendors + (data.totalCount || []) }));
         setPagination(prev => ({
           ...prev,
           vendors: { 
@@ -266,7 +269,7 @@ const CustomerLedger = () => {
         }));
       } else {
         setTransactions(prev => [...prev, ...(data.data || [])]);
-        setDisplayCounts(prev => ({ ...prev, transactions: prev.transactions + (data.data || []).length }));
+        setDisplayCounts(prev => ({ ...prev, transactions: prev.transactions + (data.totalCount || []) }));
         setPagination(prev => ({
           ...prev,
           transactions: { 
@@ -529,8 +532,9 @@ const CustomerLedger = () => {
                                 )}
                               </InputGroup>
                             </Col>
-                            <Col lg={5} md={5} sm={5} className="text-nowrap">
-                              <h6 className="mb-0">Showing: <span className="fw-bold">{displayCounts.customers}</span> of <span className="fw-bold">{counts.customers}</span></h6>
+                            <Col lg={5} md={5} sm={5} className="text-nowrap text-center">
+                               <h4 className="stats-value fw-bold">{displayCounts.customers}</h4>
+                               <span className="stats-label small">Total Records:</span>
                             </Col>
                           </Row>
                         </Col>
@@ -681,9 +685,13 @@ const CustomerLedger = () => {
                                 )}
                               </InputGroup>
                             </Col>
-                            <Col lg={5} md={5} sm={5} className="text-nowrap">
-                              <h6 className="mb-0">Showing: <span className="fw-bold">{displayCounts.vendors}</span> of <span className="fw-bold">{counts.vendors}</span></h6>
+                              <Col lg={5} md={5} sm={5} className="text-nowrap text-center">
+                               <h4 className="stats-value fw-bold">{displayCounts.vendors}</h4>
+                               <span className="stats-label small">Total Records:</span>
                             </Col>
+                            {/* <Col lg={5} md={5} sm={5} className="text-nowrap">
+                              <h6 className="mb-0">Showing: <span className="fw-bold">{displayCounts.vendors}</span> of <span className="fw-bold">{counts.vendors}</span></h6>
+                            </Col> */}
                           </Row>
                         </Col>
                       </Row>
@@ -840,9 +848,13 @@ const CustomerLedger = () => {
                                 )}
                               </InputGroup>
                             </Col>
-                            <Col lg={5} md={5} sm={5} className="text-nowrap">
-                              <h6 className="mb-0">Showing: <span className="fw-bold">{displayCounts.transactions}</span> of <span className="fw-bold">{counts.transactions}</span></h6>
+                             <Col lg={5} md={5} sm={5} className="text-nowrap text-center">
+                               <h4 className="stats-value fw-bold">{displayCounts.transactions}</h4>
+                               <span className="stats-label small">Total Records:</span>
                             </Col>
+                            {/* <Col lg={5} md={5} sm={5} className="text-nowrap">
+                              <h6 className="mb-0">Showing: <span className="fw-bold">{displayCounts.transactions}</span> of <span className="fw-bold">{counts.transactions}</span></h6>
+                            </Col> */}
                           </Row>
                         </Col>
                       </Row>

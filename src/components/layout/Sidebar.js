@@ -24,7 +24,8 @@ import {
   Menu as MenuIcon,
   ExpandLess,
   ExpandMore,
-  List as ListIcon
+  List as ListIcon,
+  Backup
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -98,8 +99,10 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle }) => {
     { text: 'Dashboard-List', icon: <ListIcon />, path: '#', hasSubmenu: true },
     { text: 'CustomerLedger', icon: <ProductsIcon />, path: '/customerledger' },
     { text: 'Products', icon: <ProductsIcon />, path: '/products' },
+    { text: 'Partners', icon: <UsersIcon />, path: '/partners' },
     { text: 'Orders', icon: <ProductsIcon />, path: '/orders' },
     { text: 'Users', icon: <UsersIcon />, path: '/users' },
+    { text: 'SQLBackup', icon: <Backup />, path: '/sqlbackup' },
   ];
 
   const dashboardListItems = [

@@ -1,0 +1,195 @@
+.content-wrap {
+  background-color: #f8f9fa;
+  min-height: 100vh;
+  /* padding: 20px 0; */
+}
+
+.table-container {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.partners-table {
+  margin-bottom: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+/* FIXED: Table header styles - removed !important and fixed specificity */
+.partners-table thead.table-header {
+  background: linear-gradient(135deg, #343957 0%, #2a3040 100%);
+}
+
+.partners-table thead.table-header th {
+  color: white;
+  font-weight: 600;
+  padding: 16px 12px;
+  border: none;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: transparent !important; /* Ensure background stays consistent */
+}
+
+.partners-table thead.table-header th.sortable-header {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  user-select: none;
+}
+
+/* FIXED: Hover background for sortable headers */
+.partners-table thead.table-header th.sortable-header:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.table-row {
+  transition: background-color 0.2s ease;
+}
+
+.table-row:hover {
+  background-color: #f8f9fa !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.table-link {
+  color: #495057;
+  text-decoration: none;
+  display: block;
+  padding: 12px 0;
+  transition: color 0.2s ease;
+}
+
+.table-link:hover {
+  color: #343957;
+  text-decoration: none;
+}
+
+.partners-table td {
+  padding: 0;
+  vertical-align: middle;
+  border-color: #e9ecef;
+  font-size: 14px;
+}
+
+.partners-table td:first-child {
+  border-left: 1px solid #e9ecef;
+}
+
+.partners-table td:last-child {
+  border-right: 1px solid #e9ecef;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Pagination Styles */
+.custom-pagination {
+  margin-bottom: 0;
+}
+
+.custom-pagination .page-item .page-link {
+  color: #343957;
+  border: 1px solid #dee2e6;
+  padding: 0.5rem 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.custom-pagination .page-item.active .page-link {
+  background-color: #343957;
+  border-color: #343957;
+  color: white;
+}
+
+.custom-pagination .page-item .page-link:hover {
+  background-color: #e9ecef;
+  border-color: #dee2e6;
+  color: #232841;
+}
+
+.custom-pagination .page-item.disabled .page-link {
+  color: #6c757d;
+  background-color: #f8f9fa;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .partners-table thead.table-header th {
+    padding: 12px 8px;
+    font-size: 12px;
+  }
+  
+  .partners-table td {
+    font-size: 12px;
+  }
+  
+  .custom-pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .custom-pagination .page-item {
+    margin-bottom: 5px;
+  }
+}
+
+/* Loading and Empty States */
+.text-muted {
+  color: #6c757d !important;
+}
+
+/* Form Controls */
+.form-select {
+  border-radius: 4px;
+  border: 1px solid #ced4da;
+}
+
+.input-group-text {
+  background-color: #f8f9fa;
+  border-color: #ced4da;
+}
+
+/* Card-like effect without using Card component */
+.table-container {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background: white;
+}
+
+/* Sort Icons */
+.sortable-header svg {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.sortable-header:hover svg {
+  opacity: 1;
+}
+
+/* Button Styles */
+.btn-success {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-success:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+/* Header Styles */
+h2 {
+  color: #343957;
+  margin-bottom: 2rem;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}

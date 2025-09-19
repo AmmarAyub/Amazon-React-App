@@ -9,10 +9,10 @@ import {
   Pagination,
   Row,
   Col,
-  Button
+  Button,
 } from "react-bootstrap";
 import { FaSort, FaSortUp, FaSortDown, FaSearch, FaPlus } from "react-icons/fa";
-import { Link,useNavigate  } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./Partners.css";
 
 const Partners = () => {
@@ -24,11 +24,11 @@ const Partners = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-   const navigate = useNavigate();
+  const navigate = useNavigate();
 
-const handleAddPartner = () => {
-  navigate('/partnerCreate');
-};
+  const handleAddPartner = () => {
+    navigate("/partnerCreate");
+  };
 
   useEffect(() => {
     const fetchPartners = async () => {
@@ -222,14 +222,14 @@ const handleAddPartner = () => {
         {/* Actions Bar */}
         <Row className="mb-3 align-items-center">
           <Col md={6}>
-             <Button 
-        variant="success" 
-        onClick={handleAddPartner}
-        className="btn btn-success"
-      >
-        <FaPlus className="me-2" />
-        Add Partner
-      </Button>
+            <Button
+              variant="success"
+              onClick={handleAddPartner}
+              className="btn btn-success"
+            >
+              <FaPlus className="me-2" />
+              Add Partner
+            </Button>
           </Col>
         </Row>
 
@@ -329,7 +329,7 @@ const handleAddPartner = () => {
                     <tr key={partner.PartnerId} className="table-row">
                       <td>
                         <Link
-                          to={`/PartnerManagement/EditPartner/${partner.PartnerId}`}
+                          to={`/editPartner/${partner.PartnerId}`}
                           className="table-link"
                         >
                           {partner.Name || "N/A"}
@@ -337,7 +337,7 @@ const handleAddPartner = () => {
                       </td>
                       <td>
                         <Link
-                          to={`/PartnerManagement/EditPartner/${partner.PartnerId}`}
+                          to={`/editPartner/${partner.PartnerId}`}
                           className="table-link"
                         >
                           {partner.PartnerShipType || "N/A"}
@@ -345,7 +345,7 @@ const handleAddPartner = () => {
                       </td>
                       <td>
                         <Link
-                          to={`/PartnerManagement/EditPartner/${partner.PartnerId}`}
+                          to={`/editPartner/${partner.PartnerId}`}
                           className="table-link"
                         >
                           {partner.Phone || "N/A"}
@@ -353,7 +353,7 @@ const handleAddPartner = () => {
                       </td>
                       <td>
                         <Link
-                          to={`/PartnerManagement/EditPartner/${partner.PartnerId}`}
+                          to={`/editPartner/${partner.PartnerId}`}
                           className="table-link"
                         >
                           {partner.Industry || "N/A"}
@@ -361,7 +361,7 @@ const handleAddPartner = () => {
                       </td>
                       <td>
                         <Link
-                          to={`/PartnerManagement/EditPartner/${partner.PartnerId}`}
+                          to={`/editPartner/${partner.PartnerId}`}
                           className="table-link"
                         >
                           {partner.Email || "N/A"}
@@ -369,7 +369,7 @@ const handleAddPartner = () => {
                       </td>
                       <td>
                         <Link
-                          to={`/PartnerManagement/EditPartner/${partner.PartnerId}`}
+                          to={`/editPartner/${partner.PartnerId}`}
                           className="table-link"
                         >
                           {formattedDate}
